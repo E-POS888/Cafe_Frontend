@@ -1,11 +1,11 @@
 /**
- * JS/app.js - 顧客點餐前端邏輯 (客製化彈窗升級版)
+ * Js/app.js - 顧客點餐前端邏輯 (加入圖片輪播與橫向導航)
  */
 
 let shoppingCart = [];
 let currentUser = {};
-let fullMenuData = []; // 儲存完整的菜單資料供彈窗使用
-let currentSelectingItem = null; // 記錄目前正在客製化的商品
+let fullMenuData = []; 
+let currentSelectingItem = null; 
 
 document.addEventListener("DOMContentLoaded", () => {
   if (typeof APP_CONFIG === 'undefined') {
@@ -13,7 +13,20 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
   initializeLiff(APP_CONFIG.LIFF_ID);
+  initCarousel(); // 啟動圖片輪播
 });
+
+// 圖片輪播邏輯
+function initCarousel() {
+  const images = document.querySelectorAll('.carousel-img');
+  if(images.length === 0) return;
+  let currentIndex = 0;
+  setInterval(() => {
+    images[currentIndex].classList.remove('active');
+    currentIndex = (currentIndex + 1) % images.length;
+    images[currentIndex].classList.add('active');
+  }, 4000); // 每 4 秒切換一張
+}
 
 function showError(msg) {
   const loadText = document.getElementById("loading-text");
@@ -73,7 +86,7 @@ async function fetchMenuFromBackend() {
     const result = await response.json();
     
     if (result.success) {
-      fullMenuData = result.data; // 儲存下來
+      fullMenuData = result.data; 
       renderMenu(fullMenuData);
       document.getElementById("loading-screen").style.display = "none";
     } else {
@@ -86,8 +99,11 @@ async function fetchMenuFromBackend() {
 
 function renderMenu(menuData) {
   const container = document.getElementById("menu-container");
-  if(!container) return;
+  const stickyNav = document.getElementById("sticky-nav");
+  if(!container || !stickyNav) return;
+  
   container.innerHTML = ""; 
+  stickyNav.innerHTML = "";
   
   const categories = {};
   menuData.forEach(item => {
@@ -96,8 +112,30 @@ function renderMenu(menuData) {
     categories[cat].push(item);
   });
   
+  let isFirst = true;
   for (const [catName, items] of Object.entries(categories)) {
+    // 1. 建立懸浮導航按鈕
+    const navBtn = document.createElement("button");
+    navBtn.className = `nav-tab ${isFirst ? 'active' : ''}`;
+    navBtn.textContent = catName;
+    navBtn.onclick = () => {
+      // 點擊導航平滑滾動到對應區塊
+      document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+      navBtn.classList.add('active');
+      const section = document.getElementById(`cat-${catName}`);
+      if(section) {
+        // 扣除 header 高度避免被遮擋
+        const y = section.getBoundingClientRect().top + window.scrollY - 110;
+        window.scrollTo({top: y, behavior: 'smooth'});
+      }
+    };
+    stickyNav.appendChild(navBtn);
+    isFirst = false;
+
+    // 2. 建立商品區塊
     const section = document.createElement("div");
+    section.id = `cat-${catName}`; // 設定錨點 ID
+    section.className = "category-section";
     section.innerHTML = `<div class="category-title">${catName}</div>`;
     
     const grid = document.createElement("div");
@@ -107,7 +145,6 @@ function renderMenu(menuData) {
       const imgUrl = item["照片網址(Drive)"] || "https://via.placeholder.com/80?text=No+Image";
       const card = document.createElement("div");
       card.className = "product-card";
-      // 將 onclick 綁定在整張卡片上，呼叫 openProductModal 並傳遞商品編號
       card.onclick = () => openProductModal(item["商品編號"]);
       
       card.innerHTML = `
@@ -134,12 +171,10 @@ function openProductModal(productId) {
   currentSelectingItem = fullMenuData.find(item => item["商品編號"] === productId);
   if(!currentSelectingItem) return;
   
-  // 填入基本資訊
   document.getElementById("modal-img").src = currentSelectingItem["照片網址(Drive)"] || "https://via.placeholder.com/100?text=No+Image";
   document.getElementById("modal-title").textContent = currentSelectingItem["商品名稱"];
   document.getElementById("modal-price").textContent = "$" + currentSelectingItem["預設價格"];
   
-  // 模擬精品文案 (未來可在 Sheets 中新增「商品描述」欄位)
   let desc = currentSelectingItem["商品描述"];
   if (!desc) {
     desc = currentSelectingItem["大類別"].includes("咖啡") 
@@ -148,11 +183,9 @@ function openProductModal(productId) {
   }
   document.getElementById("modal-desc").textContent = desc;
   
-  // 動態生成選項
   const optionsContainer = document.getElementById("modal-options-container");
   optionsContainer.innerHTML = "";
   
-  // 1. 容量選項 (假設精品限定類不提供大杯，其他預設中杯，大杯+20)
   if (currentSelectingItem["大類別"] !== "精品限定" && currentSelectingItem["大類別"] !== "甜點" && currentSelectingItem["大類別"] !== "輕食") {
     optionsContainer.innerHTML += generatePillGroup("size", "容量選擇", [
       { label: "中杯 (M)", value: "M", checked: true },
@@ -160,7 +193,6 @@ function openProductModal(productId) {
     ]);
   }
   
-  // 2. 冰熱選項 (依照資料庫 '可調冰熱' 欄位，因 GAS 傳回的可能是字串 "TRUE" 或布林值 true)
   const canTemp = currentSelectingItem["可調冰熱"] === "TRUE" || currentSelectingItem["可調冰熱"] === true;
   if (canTemp) {
     optionsContainer.innerHTML += generatePillGroup("temp", "溫度", [
@@ -171,7 +203,6 @@ function openProductModal(productId) {
     ]);
   }
   
-  // 3. 甜度選項
   const canSugar = currentSelectingItem["可調甜度"] === "TRUE" || currentSelectingItem["可調甜度"] === true;
   if (canSugar) {
     optionsContainer.innerHTML += generatePillGroup("sugar", "甜度", [
@@ -181,17 +212,19 @@ function openProductModal(productId) {
       { label: "無糖", value: "無糖" }
     ]);
   }
+
+  if (currentSelectingItem["大類別"] !== "甜點" && currentSelectingItem["大類別"] !== "輕食") {
+    optionsContainer.innerHTML += generatePillGroup("ecoCup", "容器選擇", [
+      { label: "店家提供", value: "店家提供", checked: true },
+      { label: "自備環保杯 (-$5)", value: "自備環保杯" }
+    ]);
+  }
   
-  // 清空備註欄
   document.getElementById("modal-note").value = "";
-  
-  // 顯示彈窗
   document.getElementById("product-modal").classList.add("active");
-  // 鎖定背景滾動
-  document.body.style.overflow = "hidden";
+  document.body.style.overflow = "hidden"; 
 }
 
-// 輔助函式：產生群組選項 HTML
 function generatePillGroup(groupName, title, options) {
   let html = `<div class="option-group"><div class="option-title">${title}</div><div class="pill-container">`;
   options.forEach((opt, idx) => {
@@ -207,10 +240,9 @@ function generatePillGroup(groupName, title, options) {
 }
 
 function closeProductModal(force = false) {
-  // 如果是點擊背景觸發，要檢查是否真的點到背景 (overlay)
   if (force === true || (force && force.target.id === 'product-modal')) {
     document.getElementById("product-modal").classList.remove("active");
-    document.body.style.overflow = ""; // 恢復背景滾動
+    document.body.style.overflow = ""; 
     currentSelectingItem = null;
   }
 }
@@ -218,16 +250,16 @@ function closeProductModal(force = false) {
 function confirmAddToCart() {
   if(!currentSelectingItem) return;
   
-  // 收集選擇的資料
   let finalPrice = Number(currentSelectingItem["預設價格"]);
   let selectedSize = "";
   let selectedTemp = "";
   let selectedSugar = "";
+  let selectedEcoCup = "";
   
   const sizeInput = document.querySelector('input[name="size"]:checked');
   if(sizeInput) {
     selectedSize = sizeInput.value;
-    if(selectedSize === "L") finalPrice += 20; // 大杯加價邏輯
+    if(selectedSize === "L") finalPrice += 20; 
   }
   
   const tempInput = document.querySelector('input[name="temp"]:checked');
@@ -235,10 +267,15 @@ function confirmAddToCart() {
   
   const sugarInput = document.querySelector('input[name="sugar"]:checked');
   if(sugarInput) selectedSugar = sugarInput.value;
+
+  const ecoCupInput = document.querySelector('input[name="ecoCup"]:checked');
+  if(ecoCupInput) {
+    selectedEcoCup = ecoCupInput.value;
+    if(selectedEcoCup === "自備環保杯") finalPrice -= 5;
+  }
   
   const note = document.getElementById("modal-note").value.trim();
   
-  // 將客製化商品打包放入購物車
   shoppingCart.push({ 
     id: currentSelectingItem["商品編號"], 
     name: currentSelectingItem["商品名稱"], 
@@ -247,6 +284,7 @@ function confirmAddToCart() {
     size: selectedSize,
     temp: selectedTemp,
     sugar: selectedSugar,
+    ecoCup: selectedEcoCup,
     note: note
   });
   
@@ -266,10 +304,10 @@ function openCart() {
     alert("購物車目前是空的。");
     return;
   }
-  // 顯示目前的訂單明細測試
+  
   let details = shoppingCart.map(item => {
-    let spec = [item.size, item.temp, item.sugar].filter(Boolean).join(" / ");
-    let noteStr = item.note ? `(專屬: ${item.note})` : "";
+    let spec = [item.size, item.temp, item.sugar, item.ecoCup === "自備環保杯" ? "(自備杯)" : ""].filter(Boolean).join(" / ");
+    let noteStr = item.note ? `\n  *專屬備註: ${item.note}` : "";
     return `- ${item.name} $${item.price}\n  規格: ${spec} ${noteStr}`;
   }).join("\n\n");
   
