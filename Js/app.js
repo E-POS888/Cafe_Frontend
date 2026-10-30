@@ -1,27 +1,18 @@
 /**
- * app.js - 顧客點餐前端邏輯 (加入錯誤偵測機制)
+ * JS/app.js - 顧客點餐前端邏輯
  */
 
 let shoppingCart = [];
 let currentUser = {};
 
 document.addEventListener("DOMContentLoaded", () => {
-  // 檢查 config.js 是否有成功載入
   if (typeof APP_CONFIG === 'undefined') {
-    showError("設定檔載入失敗，請檢查 HTML 中的檔案路徑大小寫");
+    showError("設定檔未載入，請確認檔案路徑。");
     return;
   }
-  
-  if (APP_CONFIG.LIFF_ID === "YOUR_LIFF_ID_HERE") {
-    showError("尚未設定 LIFF ID");
-  } else {
-    initializeLiff(APP_CONFIG.LIFF_ID);
-  }
+  initializeLiff(APP_CONFIG.LIFF_ID);
 });
 
-/**
- * 錯誤訊息顯示機制
- */
 function showError(msg) {
   const loadText = document.getElementById("loading-text");
   if (loadText) {
@@ -31,9 +22,6 @@ function showError(msg) {
   }
 }
 
-/**
- * 初始化 LINE LIFF
- */
 async function initializeLiff(myLiffId) {
   try {
     document.getElementById("loading-text").textContent = "正在連接 LINE 服務...";
@@ -52,14 +40,10 @@ async function initializeLiff(myLiffId) {
     await fetchMenuFromBackend();
     
   } catch (err) {
-    console.error("LIFF 初始化失敗", err);
-    showError("LINE 驗證失敗，請確保使用 LINE App 點開連結");
+    showError("LINE 驗證失敗，請重新載入網頁。");
   }
 }
 
-/**
- * 更新頂部會員 UI
- */
 function updateProfileUI(name, picUrl) {
   const nameEl = document.getElementById("profile-name");
   const imgEl = document.getElementById("profile-img");
@@ -67,60 +51,40 @@ function updateProfileUI(name, picUrl) {
   if(imgEl && picUrl) imgEl.src = picUrl;
 }
 
-/**
- * 向 GAS 發送請求：驗證會員
- */
 async function verifyUserWithBackend(uid, name) {
   document.getElementById("loading-text").textContent = "正在驗證會員資料...";
-  const payload = { action: "loginUser", uid: uid, name: name };
-  
   try {
     const response = await fetch(APP_CONFIG.GAS_API_URL, {
       method: "POST",
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ action: "loginUser", uid: uid, name: name })
     });
     const result = await response.json();
     currentUser = { uid: uid, name: name };
-    
-    if (result.data && result.data.isNewUser) {
-      alert("歡迎首次光臨！未來結帳時請向櫃檯提供電話號碼完成綁定。");
-    }
   } catch (error) {
-    console.error("驗證失敗", error);
-    showError("會員驗證失敗，請檢查 GAS API 網址");
+    showError("會員驗證失敗，請檢查 API。");
   }
 }
 
-/**
- * 向 GAS 發送請求：抓取商品總表
- */
 async function fetchMenuFromBackend() {
   document.getElementById("loading-text").textContent = "正在載入最新菜單...";
-  const payload = { action: "getMenu" };
-  
   try {
     const response = await fetch(APP_CONFIG.GAS_API_URL, {
       method: "POST",
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ action: "getMenu" })
     });
     const result = await response.json();
     
     if (result.success) {
       renderMenu(result.data);
-      // 資料載入成功，關閉遮罩
       document.getElementById("loading-screen").style.display = "none";
     } else {
       showError("資料庫讀取失敗：" + (result.error || result.message));
     }
   } catch (error) {
-    console.error("菜單載入失敗", error);
-    showError("無法連線至資料庫，請確認 GAS 是否已發布為最新版");
+    showError("無法連線至資料庫。");
   }
 }
 
-/**
- * 將商品資料渲染到畫面上
- */
 function renderMenu(menuData) {
   const container = document.getElementById("menu-container");
   if(!container) return;
@@ -160,29 +124,18 @@ function renderMenu(menuData) {
   }
 }
 
-/**
- * 加入購物車邏輯
- */
 function addToCart(id, name, price) {
   shoppingCart.push({ id, name, price, qty: 1 });
   updateCartUI();
 }
 
-/**
- * 更新底部購物車狀態
- */
 function updateCartUI() {
   const totalQty = shoppingCart.length;
   const totalPrice = shoppingCart.reduce((sum, item) => sum + item.price, 0);
   const cartSummary = document.getElementById("cart-summary");
-  if(cartSummary) {
-    cartSummary.textContent = `購物車：${totalQty} 項 | $${totalPrice}`;
-  }
+  if(cartSummary) cartSummary.textContent = `購物車：${totalQty} 項 | $${totalPrice}`;
 }
 
-/**
- * 點擊查看訂單
- */
 function openCart() {
   if (shoppingCart.length === 0) {
     alert("購物車是空的喔！");
