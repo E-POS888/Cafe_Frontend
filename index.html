@@ -3,59 +3,270 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Café Connect - 線上點餐</title>
+  <title>Café Connect - 精品線上點餐</title>
+  
+  <!-- 導入高級感字體：思源宋體與思源黑體 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500&family=Noto+Serif+TC:wght@500;700&display=swap" rel="stylesheet">
+  
   <!-- 引入 LINE LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   
   <style>
-    :root { --primary-color: #8D6E63; --secondary-color: #D7CCC8; --bg-color: #FAFAFA; --text-main: #3E2723; --white: #FFFFFF; }
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 0; padding-bottom: 80px; }
-    header { background-color: var(--white); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
-    .logo img { height: 40px; border-radius: 8px; }
-    .user-profile { display: flex; align-items: center; background: var(--secondary-color); padding: 5px 12px; border-radius: 20px; font-size: 14px; font-weight: bold; }
-    .user-profile img { width: 28px; height: 28px; border-radius: 50%; margin-right: 8px; }
-    .container { padding: 20px; }
-    .category-title { font-size: 18px; font-weight: bold; margin: 15px 0; border-left: 4px solid var(--primary-color); padding-left: 10px; }
-    .product-grid { display: grid; gap: 15px; }
-    .product-card { background: var(--white); border-radius: 12px; padding: 15px; display: flex; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-    .product-image { width: 80px; height: 80px; border-radius: 8px; object-fit: cover; margin-right: 15px; }
-    .product-info { flex: 1; }
-    .product-name { font-size: 16px; font-weight: bold; margin: 0 0 5px; }
-    .product-price { color: var(--primary-color); font-weight: bold; margin-bottom: 8px;}
-    .add-btn { background: var(--primary-color); color: var(--white); border: none; padding: 5px 12px; border-radius: 15px; cursor: pointer; }
-    .cart-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--primary-color); color: var(--white); padding: 15px 20px; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
-    .cart-btn { background: var(--white); color: var(--primary-color); border: none; padding: 8px 16px; border-radius: 20px; font-weight: bold; cursor: pointer; }
-    #loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+    /* =========================================
+       精品咖啡館高客製化設計系統 (Design Tokens)
+       透過修改此區塊，即可快速適應不同品牌風格
+       ========================================= */
+    :root {
+      --bg-color: #F9F8F6;       /* 羊絨暖白：溫柔的紙質背景 */
+      --text-main: #2C2C2C;      /* 曜石灰：比純黑更柔和的深色 */
+      --text-muted: #8C8C8C;     /* 雅緻灰：用於次要資訊 */
+      --accent-color: #B59B70;   /* 香檳金：提升質感的點綴色 */
+      --card-bg: #FFFFFF;        /* 純白：凸顯商品卡片 */
+      --border-radius: 12px;     /* 微圓角：現代且俐落 */
+      --transition: all 0.3s ease;
+    }
+
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      margin: 0;
+      padding: 0;
+      padding-bottom: 100px;
+      letter-spacing: 0.5px;
+    }
+
+    /* 頂部導覽與會員區塊 (毛玻璃質感) */
+    header {
+      background: rgba(249, 248, 246, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid rgba(0,0,0,0.03);
+    }
+    
+    .logo img { 
+      height: 32px; 
+      object-fit: contain;
+    }
+    
+    .user-profile {
+      display: flex;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+    
+    .user-profile img { 
+      width: 32px; 
+      height: 32px; 
+      border-radius: 50%; 
+      margin-right: 10px;
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    /* 主視覺與菜單容器 */
+    .container { 
+      padding: 24px; 
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* 類別標題 (優雅宋體) */
+    .category-title {
+      font-family: 'Noto Serif TC', serif;
+      font-size: 20px;
+      font-weight: 700;
+      margin: 32px 0 20px 0;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+    }
+    
+    .category-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(0,0,0,0.06);
+      margin-left: 16px;
+    }
+
+    /* 商品卡片：極簡留白設計 */
+    .product-grid { 
+      display: grid; 
+      gap: 20px; 
+    }
+    
+    .product-card {
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+      transition: var(--transition);
+      border: 1px solid transparent;
+    }
+    
+    .product-card:active {
+      transform: scale(0.98);
+      border-color: rgba(181, 155, 112, 0.3);
+    }
+
+    .product-image { 
+      width: 88px; 
+      height: 88px; 
+      border-radius: 8px; 
+      object-fit: cover; 
+      margin-right: 20px; 
+      background-color: var(--bg-color);
+    }
+
+    .product-info { 
+      flex: 1; 
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .product-name { 
+      font-family: 'Noto Serif TC', serif;
+      font-size: 16px; 
+      font-weight: 700; 
+      margin: 0 0 6px 0; 
+      color: var(--text-main);
+    }
+
+    .product-price { 
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 15px;
+      color: var(--accent-color); 
+      font-weight: 500; 
+      margin-bottom: 12px;
+    }
+
+    /* 線條感幽靈按鈕 (Ghost Button) */
+    .add-btn {
+      align-self: flex-start;
+      background: transparent;
+      color: var(--accent-color);
+      border: 1px solid var(--accent-color);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    
+    .add-btn:hover, .add-btn:active {
+      background: var(--accent-color);
+      color: var(--card-bg);
+    }
+
+    /* 底部購物車狀態列 (懸浮優雅感) */
+    .cart-bar {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 48px);
+      max-width: 552px;
+      background: var(--text-main);
+      color: var(--bg-color);
+      padding: 16px 24px;
+      border-radius: 100px;
+      box-sizing: border-box;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      z-index: 1000;
+    }
+    
+    #cart-summary {
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 1px;
+    }
+
+    .cart-btn {
+      background: var(--accent-color);
+      color: var(--card-bg);
+      border: none;
+      padding: 10px 20px;
+      border-radius: 100px;
+      font-weight: 500;
+      font-size: 14px;
+      cursor: pointer;
+      letter-spacing: 1px;
+    }
+
+    /* 系統載入遮罩 (詩意漸進) */
+    #loading-screen {
+      position: fixed; 
+      top: 0; left: 0; 
+      width: 100%; height: 100%;
+      background: var(--bg-color);
+      z-index: 9999;
+      display: flex; 
+      flex-direction: column; 
+      justify-content: center; 
+      align-items: center;
+    }
+    
+    #loading-screen h2 {
+      font-family: 'Noto Serif TC', serif;
+      color: var(--text-main);
+      font-weight: 500;
+      letter-spacing: 2px;
+    }
+    
+    #loading-text {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-top: 8px;
+    }
   </style>
 </head>
 <body>
 
   <div id="loading-screen">
-    <h2>☕ 系統載入中...</h2>
-    <p id="loading-text">正在連接資料庫</p>
+    <h2>Take your time.</h2>
+    <p id="loading-text">正在為您準備專屬菜單...</p>
   </div>
 
   <header>
     <div class="logo">
-      <!-- 根據你 3059.jpg 的截圖，你的圖片檔名為 logo.jpg -->
-      <img id="shop-logo" src="logo.jpg" alt="Logo" onerror="this.src='https://via.placeholder.com/120x40?text=LOGO'">
+      <img id="shop-logo" src="logo.jpg" alt="Logo" onerror="this.src='https://via.placeholder.com/120x40?text=Premium+Cafe'">
     </div>
     <div class="user-profile" id="user-profile">
-      <img id="profile-img" src="https://via.placeholder.com/28" alt="User">
+      <img id="profile-img" src="https://via.placeholder.com/32" alt="User">
       <span id="profile-name">登入中</span>
     </div>
   </header>
 
-  <div class="container" id="menu-container"></div>
-
-  <div class="cart-bar">
-    <div id="cart-summary">購物車：0 項 | $0</div>
-    <button class="cart-btn" onclick="openCart()">查看訂單</button>
+  <div class="container" id="menu-container">
+    <!-- 商品列表將由 JS 動態生成 -->
   </div>
 
-  <!-- 【重要修改】將路徑從 JS/ 改為 Js/ 以完全吻合 GitHub 實際路徑 -->
-  <script src="Js/config.js" onerror="document.getElementById('loading-text').innerHTML='<span style=\'color:red;\'>❌ 找不到 Js/config.js，請檢查檔案是否存在</span>'"></script>
-  <script src="Js/app.js" onerror="document.getElementById('loading-text').innerHTML='<span style=\'color:red;\'>❌ 找不到 Js/app.js，請檢查檔案是否存在</span>'"></script>
+  <div class="cart-bar">
+    <div id="cart-summary">Cart • 0 | $0</div>
+    <button class="cart-btn" onclick="openCart()">結帳</button>
+  </div>
+
+  <!-- 連線邏輯與防呆偵測 -->
+  <script src="Js/config.js" onerror="document.getElementById('loading-text').innerHTML='<span style=\'color:red;\'>系統連線設定異常，請聯繫服務人員。</span>'"></script>
+  <script src="Js/app.js" onerror="document.getElementById('loading-text').innerHTML='<span style=\'color:red;\'>系統應用元件異常，請聯繫服務人員。</span>'"></script>
 
 </body>
 </html>
