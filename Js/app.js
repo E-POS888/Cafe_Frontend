@@ -83,6 +83,8 @@ async function submitRegistration() {
   const name = document.getElementById("reg-name").value.trim();
   const phone = document.getElementById("reg-phone").value.trim();
   const floor = document.getElementById("reg-floor").value.trim();
+  const note = document.getElementById("reg-note").value.trim(); // 新增擷取備註內容
+  
   if (!name || !phone) { alert("請填寫姓名與手機號碼！"); return; }
   
   document.getElementById("register-modal").classList.remove("active");
@@ -90,7 +92,11 @@ async function submitRegistration() {
   try {
     const response = await fetch(APP_CONFIG.GAS_API_URL, {
       method: "POST",
-      body: JSON.stringify({ action: "registerUser", userData: { uid: tempUserProfile.uid, name, phone, floor } })
+      body: JSON.stringify({ 
+        action: "registerUser", 
+        // 將 note 也打包傳送給後端
+        userData: { uid: tempUserProfile.uid, name, phone, floor, note } 
+      })
     });
     const result = await response.json();
     if (result.success) {
@@ -160,7 +166,6 @@ function renderMenu(menuData) {
   }
 }
 
-/* Modal 共用控制 */
 function closeModal(modalId, force = false) {
   if (force === true || (force && force.target.id === modalId)) {
     document.getElementById(modalId).classList.remove("active");
@@ -169,9 +174,6 @@ function closeModal(modalId, force = false) {
   }
 }
 
-/* =========================================
-   1. 購物車與結帳邏輯
-   ========================================= */
 function openProductModal(productId) {
   currentSelectingItem = fullMenuData.find(item => item["商品編號"] === productId);
   if(!currentSelectingItem) return;
@@ -215,7 +217,7 @@ function confirmAddToCart() {
   if(ecoCup === "自備環保杯") finalPrice -= 5;
   
   shoppingCart.push({ 
-    id: Date.now().toString(), // 購物車內獨立ID
+    id: Date.now().toString(), 
     productId: currentSelectingItem["商品編號"], 
     name: currentSelectingItem["商品名稱"], 
     price: finalPrice, 
@@ -234,7 +236,7 @@ function updateCartUI() {
 function removeFromCart(id) {
   shoppingCart = shoppingCart.filter(item => item.id !== id);
   updateCartUI();
-  openCheckoutModal(); // 重新渲染清單
+  openCheckoutModal(); 
   if(shoppingCart.length === 0) closeModal('checkout-modal', true);
 }
 
@@ -302,9 +304,6 @@ async function submitOrder() {
   hideLoading();
 }
 
-/* =========================================
-   2. 會員專區與消費習慣分析
-   ========================================= */
 async function openMemberProfile() {
   if(!currentUser || !currentUser.uid) return;
   document.getElementById("member-name-title").textContent = `Hi, ${currentUser.name}`;
@@ -325,7 +324,6 @@ async function openMemberProfile() {
       const orders = result.data;
       document.getElementById("habit-count").textContent = orders.length;
       
-      // 計算消費習慣 (出現最多次的商品)
       let itemCounts = {};
       orders.forEach(order => {
         try {
@@ -336,7 +334,6 @@ async function openMemberProfile() {
       let favItem = Object.keys(itemCounts).reduce((a, b) => itemCounts[a] > itemCounts[b] ? a : b, "-");
       document.getElementById("habit-drink").textContent = favItem;
       
-      // 渲染歷史訂單清單 (最多顯示前 10 筆)
       listEl.innerHTML = "";
       orders.slice(0, 10).forEach(order => {
         let statusColor = order["訂單狀態"] === "已完成" ? "green" : "orange";
