@@ -3,20 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Café Connect - 精品線上點餐</title>
+  <title>MUGI Elegance - 雅緻點餐系統</title>
   
-  <!-- 導入高級感字體 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500&family=Noto+Serif+TC:wght@500;700&display=swap" rel="stylesheet">
   
-  <!-- 引入 LINE LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   
   <style>
-    /* =========================================
-       精品咖啡館高客製化設計系統 (Design Tokens)
-       ========================================= */
     :root {
       --bg-color: #F9F8F6;
       --text-main: #2C2C2C;
@@ -28,33 +23,59 @@
     }
 
     body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 0; padding-bottom: 100px; letter-spacing: 0.5px; }
-    header { background: rgba(249, 248, 246, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid rgba(0,0,0,0.03); }
-    .logo img { height: 32px; object-fit: contain; }
+    
+    /* 頂部標題 */
+    header { background: rgba(249, 248, 246, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 200; border-bottom: 1px solid rgba(0,0,0,0.03); }
+    .logo img { height: 28px; object-fit: contain; }
     .user-profile { display: flex; align-items: center; font-size: 13px; font-weight: 500; color: var(--text-main); }
-    .user-profile img { width: 32px; height: 32px; border-radius: 50%; margin-right: 10px; border: 1px solid rgba(0,0,0,0.05); }
+    .user-profile img { width: 28px; height: 28px; border-radius: 50%; margin-right: 8px; border: 1px solid rgba(0,0,0,0.05); }
 
-    .container { padding: 24px; max-width: 600px; margin: 0 auto; }
-    .category-title { font-family: 'Noto Serif TC', serif; font-size: 20px; font-weight: 700; margin: 32px 0 20px 0; color: var(--text-main); display: flex; align-items: center; }
+    /* =========================================
+       新增：主視覺輪播與公告區 (Hero Section)
+       ========================================= */
+    .hero-section { position: relative; width: 100%; max-width: 600px; margin: 0 auto; height: 220px; overflow: hidden; background: #EFEBE4; }
+    .carousel { position: relative; width: 100%; height: 100%; }
+    .carousel-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1.5s ease-in-out; }
+    .carousel-img.active { opacity: 1; }
+    
+    /* 半透明漸層覆蓋，讓文字更清晰 */
+    .hero-overlay { position: absolute; bottom: 0; left: 0; width: 100%; height: 50%; background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%); z-index: 10; pointer-events: none; }
+    
+    /* 店內公告列 */
+    .announcement-bar { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); width: 90%; background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.3); padding: 6px 12px; border-radius: 20px; color: #FFF; font-size: 13px; display: flex; align-items: center; z-index: 11; box-sizing: border-box; }
+    .announce-icon { margin-right: 8px; font-size: 14px; }
+    .announce-text { flex: 1; overflow: hidden; white-space: nowrap; }
+
+    /* =========================================
+       新增：橫向懸浮分類導航 (Sticky Nav)
+       ========================================= */
+    .sticky-nav-wrapper { position: sticky; top: 53px; z-index: 150; background: rgba(249, 248, 246, 0.95); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-bottom: 1px solid rgba(0,0,0,0.05); padding: 10px 0; max-width: 600px; margin: 0 auto; }
+    .sticky-nav { display: flex; overflow-x: auto; scroll-behavior: smooth; padding: 0 20px; gap: 12px; scrollbar-width: none; /* Firefox */ }
+    .sticky-nav::-webkit-scrollbar { display: none; /* Safari/Chrome */ }
+    .nav-tab { background: transparent; color: var(--text-muted); border: 1px solid #E0DCD6; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: var(--transition); font-family: 'Noto Sans TC', sans-serif; }
+    .nav-tab.active { background: var(--text-main); color: var(--bg-color); border-color: var(--text-main); }
+
+    /* 商品列表與卡片 */
+    .container { padding: 20px 24px; max-width: 600px; margin: 0 auto; }
+    .category-section { scroll-margin-top: 120px; /* 避免錨點跳轉被導航列擋住 */ }
+    .category-title { font-family: 'Noto Serif TC', serif; font-size: 20px; font-weight: 700; margin: 24px 0 16px 0; color: var(--text-main); display: flex; align-items: center; }
     .category-title::after { content: ''; flex: 1; height: 1px; background: rgba(0,0,0,0.06); margin-left: 16px; }
 
-    .product-grid { display: grid; gap: 20px; }
-    /* 讓整張卡片都可以點擊 */
-    .product-card { background: var(--card-bg); border-radius: var(--border-radius); padding: 16px; display: flex; align-items: center; box-shadow: 0 4px 20px rgba(0,0,0,0.02); transition: var(--transition); border: 1px solid transparent; cursor: pointer; }
+    .product-grid { display: grid; gap: 16px; }
+    .product-card { background: var(--card-bg); border-radius: var(--border-radius); padding: 16px; display: flex; align-items: center; box-shadow: 0 2px 12px rgba(0,0,0,0.03); transition: var(--transition); border: 1px solid transparent; cursor: pointer; }
     .product-card:active { transform: scale(0.98); border-color: rgba(181, 155, 112, 0.3); }
-    .product-image { width: 88px; height: 88px; border-radius: 8px; object-fit: cover; margin-right: 20px; background-color: var(--bg-color); }
+    .product-image { width: 80px; height: 80px; border-radius: 8px; object-fit: cover; margin-right: 16px; background-color: var(--bg-color); }
     .product-info { flex: 1; display: flex; flex-direction: column; justify-content: center; pointer-events: none; }
     .product-name { font-family: 'Noto Serif TC', serif; font-size: 16px; font-weight: 700; margin: 0 0 6px 0; color: var(--text-main); }
-    .product-price { font-family: 'Noto Sans TC', sans-serif; font-size: 15px; color: var(--accent-color); font-weight: 500; margin-bottom: 12px; }
+    .product-price { font-family: 'Noto Sans TC', sans-serif; font-size: 14px; color: var(--accent-color); font-weight: 500; margin-bottom: 10px; }
+    .add-btn { align-self: flex-start; background: transparent; color: var(--accent-color); border: 1px solid var(--accent-color); padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; pointer-events: none; }
 
-    .add-btn { align-self: flex-start; background: transparent; color: var(--accent-color); border: 1px solid var(--accent-color); padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; pointer-events: none; }
-
+    /* 購物車與其他維持不變 */
     .cart-bar { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); width: calc(100% - 48px); max-width: 552px; background: var(--text-main); color: var(--bg-color); padding: 16px 24px; border-radius: 100px; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.15); z-index: 100; }
     #cart-summary { font-size: 15px; font-weight: 500; letter-spacing: 1px; }
     .cart-btn { background: var(--accent-color); color: var(--card-bg); border: none; padding: 10px 20px; border-radius: 100px; font-weight: 500; font-size: 14px; cursor: pointer; letter-spacing: 1px; }
 
-    /* =========================================
-       動態咖啡注入載入畫面
-       ========================================= */
+    /* 載入畫面 */
     #loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
     #loading-screen h2 { font-family: 'Noto Serif TC', serif; color: var(--text-main); font-weight: 500; letter-spacing: 2px; margin-top: 20px; margin-bottom: 5px; }
     #loading-text { color: var(--text-muted); font-size: 13px; letter-spacing: 1px; }
@@ -70,70 +91,66 @@
     @keyframes fillUp { 0%, 15% { height: 0%; } 65%, 100% { height: 85%; } }
     @keyframes rise { 0% { transform: translateY(0) scale(1); opacity: 0; } 40% { opacity: 0.6; } 100% { transform: translateY(-25px) scale(1.5); opacity: 0; } }
 
-    /* =========================================
-       客製化商品彈窗 (Bottom Sheet Modal)
-       ========================================= */
-    .modal-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
-      z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
-      display: flex; align-items: flex-end; justify-content: center;
-    }
+    /* 彈窗樣式 */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; display: flex; align-items: flex-end; justify-content: center; }
     .modal-overlay.active { opacity: 1; pointer-events: auto; }
-    
-    .modal-content {
-      background: var(--bg-color); width: 100%; max-width: 600px;
-      border-radius: 24px 24px 0 0; padding: 30px 24px; box-sizing: border-box;
-      transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.1, 1, 0.2, 1);
-      max-height: 85vh; overflow-y: auto; position: relative;
-    }
+    .modal-content { background: var(--bg-color); width: 100%; max-width: 600px; border-radius: 24px 24px 0 0; padding: 30px 24px; box-sizing: border-box; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.1, 1, 0.2, 1); max-height: 85vh; overflow-y: auto; position: relative; }
     .modal-overlay.active .modal-content { transform: translateY(0); }
-    
-    /* 關閉按鈕 */
     .close-modal { position: absolute; top: 20px; right: 24px; background: rgba(0,0,0,0.05); border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 16px; cursor: pointer; color: var(--text-main); display: flex; align-items: center; justify-content: center; }
-    
-    /* 彈窗內商品資訊 */
     .modal-header { display: flex; margin-bottom: 20px; }
     .modal-img { width: 100px; height: 100px; border-radius: 12px; object-fit: cover; margin-right: 20px; }
-    .modal-title { font-family: 'Noto Serif TC', serif; font-size: 22px; font-weight: 700; margin: 0 0 8px 0; color: var(--text-main); }
+    .modal-title { font-family: 'Noto Serif TC', serif; font-size: 20px; font-weight: 700; margin: 0 0 8px 0; color: var(--text-main); }
     .modal-price { font-size: 18px; color: var(--accent-color); font-weight: 700; margin: 0; }
-    
-    /* 商品故事/風味描述 */
     .modal-desc { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid rgba(0,0,0,0.06); }
-    
-    /* 選項區塊 (Pill style Radio Buttons) */
     .option-group { margin-bottom: 24px; }
     .option-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--text-main); }
     .pill-container { display: flex; flex-wrap: wrap; gap: 10px; }
     .pill-radio { display: none; }
     .pill-label { border: 1px solid #E0DCD6; color: var(--text-muted); padding: 8px 16px; border-radius: 100px; font-size: 14px; cursor: pointer; transition: var(--transition); background: var(--card-bg); }
     .pill-radio:checked + .pill-label { background: var(--accent-color); color: var(--card-bg); border-color: var(--accent-color); font-weight: 500; }
-    
-    /* 專屬備註輸入框 */
     .custom-note-input { width: 100%; padding: 12px 16px; border: 1px solid #E0DCD6; border-radius: 12px; font-family: 'Noto Sans TC', sans-serif; font-size: 14px; box-sizing: border-box; background: var(--card-bg); color: var(--text-main); transition: var(--transition); outline: none; }
     .custom-note-input:focus { border-color: var(--accent-color); }
-    
-    /* 確認加入按鈕 */
     .modal-add-btn { width: 100%; background: var(--text-main); color: var(--bg-color); border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 10px; transition: var(--transition); }
-    .modal-add-btn:active { transform: scale(0.98); }
   </style>
 </head>
 <body>
 
-  <!-- 載入動畫 -->
   <div id="loading-screen">
     <div class="coffee-loader">
       <div class="stream"></div><div class="steam steam-1"></div><div class="steam steam-2"></div>
       <div class="cup-body"><div class="liquid"></div></div><div class="cup-handle"></div>
     </div>
-    <h2>Take your time.</h2>
+    <h2>MUGI Elegance</h2>
     <p id="loading-text">正在為您準備專屬菜單...</p>
   </div>
 
   <header>
-    <div class="logo"><img id="shop-logo" src="logo.jpg" alt="Logo" onerror="this.src='https://via.placeholder.com/120x40?text=Premium+Cafe'"></div>
+    <div class="logo"><img id="shop-logo" src="logo.jpg" alt="Logo" onerror="this.src='https://via.placeholder.com/120x40?text=MUGI+Elegance'"></div>
     <div class="user-profile" id="user-profile"><img id="profile-img" src="https://via.placeholder.com/32" alt="User"><span id="profile-name">登入中</span></div>
   </header>
+
+  <!-- 輪播與公告區塊 -->
+  <div class="hero-section">
+    <div class="carousel" id="main-carousel">
+      <!-- 預設高質感咖啡圖片 -->
+      <img src="https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=600&q=80" class="carousel-img active" alt="Coffee 1">
+      <img src="https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=600&q=80" class="carousel-img" alt="Coffee 2">
+      <img src="https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&w=600&q=80" class="carousel-img" alt="Coffee 3">
+    </div>
+    <div class="hero-overlay"></div>
+    <div class="announcement-bar">
+      <span class="announce-icon">✨</span>
+      <!-- Marquee 跑馬燈公告 -->
+      <marquee class="announce-text" scrollamount="3">歡迎來到 MUGI DAYS 麥好日！響應環保，自備環保杯點購飲品即可享 5 元折抵優惠。今日主廚推薦：特選單品拿鐵、抹茶巴斯克。</marquee>
+    </div>
+  </div>
+
+  <!-- 橫向懸浮分類導航列 -->
+  <div class="sticky-nav-wrapper">
+    <div class="sticky-nav" id="sticky-nav">
+      <!-- 由 JS 動態產生分類按鈕 -->
+    </div>
+  </div>
 
   <div class="container" id="menu-container"></div>
 
@@ -142,11 +159,9 @@
     <button class="cart-btn" onclick="openCart()">結帳</button>
   </div>
 
-  <!-- 商品客製化彈窗結構 -->
   <div class="modal-overlay" id="product-modal" onclick="closeProductModal(event)">
     <div class="modal-content" onclick="event.stopPropagation()">
       <button class="close-modal" onclick="closeProductModal(true)">✕</button>
-      
       <div class="modal-header">
         <img class="modal-img" id="modal-img" src="" alt="Product">
         <div>
@@ -154,25 +169,18 @@
           <p class="modal-price" id="modal-price">$0</p>
         </div>
       </div>
-      
-      <div class="modal-desc" id="modal-desc">
-        <!-- 風味描述將動態載入 -->
-      </div>
-      
-      <!-- 動態生成的選項區 (大小/冰熱/甜度) -->
+      <div class="modal-desc" id="modal-desc"></div>
       <div id="modal-options-container"></div>
-      
       <div class="option-group">
         <div class="option-title">專屬杯備註 (選填)</div>
         <input type="text" id="modal-note" class="custom-note-input" placeholder="例如：王總的、少冰多一點奶...">
       </div>
-      
       <button class="modal-add-btn" onclick="confirmAddToCart()">確認加入購物車</button>
     </div>
   </div>
 
-  <script src="Js/config.js" onerror="document.getElementById('loading-text').innerHTML='<span style=\'color:red;\'>系統連線設定異常，請聯繫服務人員。</span>'"></script>
-  <script src="Js/app.js" onerror="document.getElementById('loading-text').innerHTML='<span style=\'color:red;\'>系統應用元件異常，請聯繫服務人員。</span>'"></script>
+  <script src="Js/config.js" onerror="document.getElementById('loading-text').innerHTML='<span style=\'color:red;\'>系統連線設定異常。</span>'"></script>
+  <script src="Js/app.js" onerror="document.getElementById('loading-text').innerHTML='<span style=\'color:red;\'>系統應用元件異常。</span>'"></script>
 
 </body>
 </html>
