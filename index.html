@@ -4,13 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   
-  <!-- SEO 與社群分享標籤 (Open Graph) -->
   <title>MUGI Elegance - 雅緻點餐系統</title>
   <meta name="description" content="點滴淬鍊，品味優雅。為您準備莊園級精品咖啡與手作甜點，立即開啟專屬點餐體驗，享受靜謐的咖啡時光。">
   <meta property="og:title" content="MUGI Elegance - 雅緻點餐系統">
   <meta property="og:description" content="點滴淬鍊，品味優雅。為您準備莊園級精品咖啡與手作甜點，立即開啟專屬點餐體驗，享受靜謐的咖啡時光。">
   <meta property="og:type" content="website">
-  <!-- 預覽縮圖 (使用輪播圖的第一張高質感咖啡照) -->
   <meta property="og:image" content="https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=600&q=80">
   <meta property="og:url" content="https://liff.line.me/2012296480-vuLoMBBJ">
 
@@ -156,7 +154,7 @@
     </div>
   </div>
 
-  <!-- 商品彈窗 -->
+  <!-- 商品客製化彈窗 -->
   <div class="modal-overlay" id="product-modal" onclick="closeModal('product-modal', event)">
     <div class="modal-content" onclick="event.stopPropagation()">
       <button class="close-modal" onclick="closeModal('product-modal', true)">✕</button>
@@ -171,7 +169,7 @@
     </div>
   </div>
 
-  <!-- 結帳確認彈窗 -->
+  <!-- 結帳確認彈窗 (加入整筆訂單 內用/外帶 設定) -->
   <div class="modal-overlay" id="checkout-modal" onclick="closeModal('checkout-modal', event)">
     <div class="modal-content" onclick="event.stopPropagation()">
       <button class="close-modal" onclick="closeModal('checkout-modal', true)">✕</button>
@@ -179,6 +177,16 @@
       <div id="checkout-list" style="margin-bottom: 20px; max-height: 40vh; overflow-y: auto;"></div>
       <div style="text-align: right; font-size: 20px; font-weight: bold; color: var(--accent-color); margin-bottom: 20px;" id="checkout-total-display">總計: $0</div>
       
+      <div class="option-group">
+        <div class="option-title">用餐方式</div>
+        <div class="pill-container">
+          <input type="radio" name="dineInType" id="dine-in" class="pill-radio" value="內用" checked>
+          <label for="dine-in" class="pill-label">🍽️ 內用</label>
+          <input type="radio" name="dineInType" id="takeaway" class="pill-radio" value="外帶">
+          <label for="takeaway" class="pill-label">🛍️ 外帶</label>
+        </div>
+      </div>
+
       <div class="option-group">
         <div class="option-title">選擇付款方式</div>
         <div class="pill-container">
