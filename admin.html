@@ -26,6 +26,7 @@
     .auth-box { background: var(--white); padding: 30px; border-radius: 12px; text-align: center; }
     .auth-box input { padding: 10px; margin: 15px 0; width: 80%; border: 1px solid #ccc; border-radius: 6px; }
     #error-msg { color: red; font-weight: bold; margin-top: 10px; }
+    .search-bar { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; margin-bottom: 20px; font-size: 16px; box-sizing: border-box; }
   </style>
 </head>
 <body>
@@ -45,10 +46,12 @@
     <div class="sidebar-header">Café Connect<br><span style="font-size:14px; font-weight:normal;">主管控制台</span></div>
     <button class="nav-btn active" onclick="switchTab('finance-sec', this)">💰 財務與歸檔</button>
     <button class="nav-btn" onclick="switchTab('product-sec', this)">📦 商品管理</button>
+    <button class="nav-btn" onclick="switchTab('member-sec', this)">👥 會員管理</button>
     <button class="nav-btn" onclick="switchTab('log-sec', this)">📝 操作日誌</button>
   </div>
 
   <div class="main-content">
+    
     <div id="finance-sec" class="section active">
       <h2>財務報表與結算歸檔</h2>
       <p>執行歸檔後，資料將寫入獨立報表並鎖定，無法隨意竄改。</p>
@@ -78,6 +81,20 @@
       </table>
     </div>
 
+    <!-- 新增：會員管理區塊 -->
+    <div id="member-sec" class="section">
+      <h2>會員資料管理</h2>
+      <input type="text" id="member-search" class="search-bar" placeholder="🔍 搜尋姓名、手機號碼或樓層備註..." onkeyup="filterMembers()">
+      <table>
+        <thead>
+          <tr><th>姓名</th><th>手機號碼</th><th>樓層/備註</th><th>權限等級</th><th>註冊時間</th></tr>
+        </thead>
+        <tbody id="admin-member-list">
+          <tr><td colspan="5">載入中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
     <div id="log-sec" class="section">
       <h2>非預期操作日誌 (Audit Log)</h2>
       <table>
@@ -89,6 +106,7 @@
         </tbody>
       </table>
     </div>
+
   </div>
 
   <script src="Js/config.js" onerror="document.getElementById('error-msg').innerHTML='❌ 找不到 Js/config.js'"></script>
