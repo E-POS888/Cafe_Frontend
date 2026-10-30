@@ -3,165 +3,95 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Café Connect - POS 櫃台系統</title>
+  <title>Café Connect - 主管與財務後台</title>
   <style>
-    :root {
-      --primary-color: #8D6E63;
-      --secondary-color: #D7CCC8;
-      --bg-color: #F5F5DC; /* 溫暖紙質底色 */
-      --text-main: #3E2723;
-      --white: #FFFFFF;
-      --border-radius: 8px;
-    }
-    body {
-      font-family: 'Helvetica Neue', Arial, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-main);
-      margin: 0;
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
-    }
-    /* 左側：線上單處理區 */
-    .online-orders {
-      width: 30%;
-      background: var(--secondary-color);
-      padding: 20px;
-      overflow-y: auto;
-      border-right: 1px solid rgba(0,0,0,0.1);
-    }
-    .order-card {
-      background: var(--white);
-      padding: 15px;
-      border-radius: var(--border-radius);
-      margin-bottom: 15px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-    .order-card h4 { margin: 0 0 10px 0; color: var(--primary-color); }
-    .action-btn {
-      background: var(--primary-color);
-      color: var(--white);
-      border: none;
-      padding: 8px 12px;
-      border-radius: var(--border-radius);
-      cursor: pointer;
-      width: 100%;
-      margin-top: 10px;
-    }
-    /* 中間：商品分類與列表 */
-    .menu-area {
-      width: 45%;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-    }
-    .category-tabs {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-      overflow-x: auto;
-    }
-    .tab-btn {
-      padding: 10px 20px;
-      background: var(--white);
-      border: 1px solid var(--primary-color);
-      color: var(--primary-color);
-      border-radius: 20px;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-    .tab-btn.active {
-      background: var(--primary-color);
-      color: var(--white);
-    }
-    .pos-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 15px;
-      overflow-y: auto;
-    }
-    .pos-item {
-      background: var(--white);
-      padding: 15px;
-      border-radius: var(--border-radius);
-      text-align: center;
-      cursor: pointer;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-    .pos-item:hover { border: 2px solid var(--primary-color); }
-    /* 右側：購物車與結帳 */
-    .checkout-area {
-      width: 25%;
-      background: var(--white);
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      border-left: 1px solid rgba(0,0,0,0.1);
-    }
-    .cart-list { flex: 1; overflow-y: auto; margin-bottom: 20px; }
-    .cart-item {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 10px;
-      border-bottom: 1px dashed #ccc;
-      padding-bottom: 10px;
-    }
-    .total-display {
-      font-size: 24px;
-      font-weight: bold;
-      text-align: right;
-      margin-bottom: 20px;
-      color: var(--primary-color);
-    }
-    .pay-btn-group { display: flex; flex-direction: column; gap: 10px; }
-    .pay-btn {
-      padding: 15px;
-      border: none;
-      border-radius: var(--border-radius);
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .pay-cash { background: #4CAF50; color: white; }
-    .pay-line { background: #00C300; color: white; }
+    :root { --primary-color: #8D6E63; --secondary-color: #D7CCC8; --bg-color: #FAFAFA; --text-main: #3E2723; --white: #FFFFFF; --danger: #d32f2f; --success: #388e3c; }
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+    .sidebar { width: 250px; background-color: var(--primary-color); color: var(--white); display: flex; flex-direction: column; }
+    .sidebar-header { padding: 20px; font-size: 20px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.2); text-align: center; }
+    .nav-btn { padding: 15px 20px; background: none; border: none; color: var(--white); text-align: left; font-size: 16px; cursor: pointer; transition: 0.3s; }
+    .nav-btn:hover, .nav-btn.active { background-color: rgba(255,255,255,0.2); font-weight: bold; }
+    .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+    .section { display: none; background: var(--white); padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .section.active { display: block; }
+    h2 { margin-top: 0; border-bottom: 2px solid var(--secondary-color); padding-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+    th { background-color: var(--secondary-color); color: var(--text-main); }
+    .action-btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: var(--white); }
+    .btn-primary { background-color: var(--primary-color); }
+    .btn-danger { background-color: var(--danger); }
+    .btn-success { background-color: var(--success); }
+    #auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; justify-content: center; align-items: center; }
+    .auth-box { background: var(--white); padding: 30px; border-radius: 12px; text-align: center; }
+    .auth-box input { padding: 10px; margin: 15px 0; width: 80%; border: 1px solid #ccc; border-radius: 6px; }
+    #error-msg { color: red; font-weight: bold; margin-top: 10px; }
   </style>
 </head>
 <body>
 
-  <!-- 左側：待接單區 -->
-  <div class="online-orders">
-    <h3>線上點餐待處理</h3>
-    <div id="pending-orders-container">
-      <!-- 待處理訂單將由 JS 渲染 -->
+  <div id="auth-overlay">
+    <div class="auth-box">
+      <h3>🔒 系統受保護</h3>
+      <p>請輸入主管密碼以存取後台</p>
+      <input type="password" id="admin-password" placeholder="請輸入密碼">
+      <br>
+      <button class="action-btn btn-primary" onclick="verifyAdmin()">登入</button>
+      <div id="error-msg"></div>
     </div>
   </div>
 
-  <!-- 中間：分類與商品區 -->
-  <div class="menu-area">
-    <div class="category-tabs" id="category-tabs">
-      <!-- 分類標籤 -->
+  <div class="sidebar">
+    <div class="sidebar-header">Café Connect<br><span style="font-size:14px; font-weight:normal;">主管控制台</span></div>
+    <button class="nav-btn active" onclick="switchTab('finance-sec', this)">💰 財務與歸檔</button>
+    <button class="nav-btn" onclick="switchTab('product-sec', this)">📦 商品管理</button>
+    <button class="nav-btn" onclick="switchTab('log-sec', this)">📝 操作日誌</button>
+  </div>
+
+  <div class="main-content">
+    <div id="finance-sec" class="section active">
+      <h2>財務報表與結算歸檔</h2>
+      <p>執行歸檔後，資料將寫入獨立報表並鎖定，無法隨意竄改。</p>
+      <div style="display: flex; gap: 15px; margin-top: 20px;">
+        <div style="flex: 1; padding: 20px; border: 1px solid #eee; border-radius: 8px; text-align: center;">
+          <h3>每日結算</h3>
+          <p style="color: #666;">將今日所有「已完成」訂單加總歸檔</p>
+          <button class="action-btn btn-success" onclick="executeArchive('daily')">執行日歸檔</button>
+        </div>
+        <div style="flex: 1; padding: 20px; border: 1px solid #eee; border-radius: 8px; text-align: center;">
+          <h3>週/月 彙整</h3>
+          <p style="color: #666;">將日結算資料彙整為週期報表</p>
+          <button class="action-btn btn-primary" onclick="executeArchive('periodic')">執行週期歸檔</button>
+        </div>
+      </div>
     </div>
-    <div class="pos-grid" id="pos-grid">
-      <!-- 點擊分類後顯示商品 -->
+
+    <div id="product-sec" class="section">
+      <h2>商品上下架管理</h2>
+      <table>
+        <thead>
+          <tr><th>編號</th><th>名稱</th><th>分類</th><th>價格</th><th>狀態</th><th>操作</th></tr>
+        </thead>
+        <tbody id="admin-product-list">
+          <tr><td colspan="6">載入中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="log-sec" class="section">
+      <h2>非預期操作日誌 (Audit Log)</h2>
+      <table>
+        <thead>
+          <tr><th>時間</th><th>操作者 UID</th><th>操作類型</th><th>詳細內容</th></tr>
+        </thead>
+        <tbody id="admin-log-list">
+          <tr><td colspan="4">尚無異常日誌。</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
-  <!-- 右側：結帳區 -->
-  <div class="checkout-area">
-    <h3>目前訂單 (訪客)</h3>
-    <div class="cart-list" id="pos-cart-list">
-      <!-- 購物車項目 -->
-    </div>
-    <div class="total-display" id="pos-total">Total: $0</div>
-    <div class="pay-btn-group">
-      <button class="pay-btn pay-cash" onclick="processCheckout('現金')">現金結帳</button>
-      <button class="pay-btn pay-line" onclick="processCheckout('LINE Pay')">LINE Pay</button>
-      <button class="action-btn" style="background:#555;" onclick="clearCart()">清空重來</button>
-    </div>
-  </div>
-
-  <!-- 載入全域設定與邏輯 (已更新為大寫 Js 資料夾) -->
-  <script src="Js/config.js"></script>
-  <script src="Js/pos.js"></script>
+  <script src="Js/config.js" onerror="document.getElementById('error-msg').innerHTML='❌ 找不到 Js/config.js'"></script>
+  <script src="Js/admin.js" onerror="document.getElementById('error-msg').innerHTML='❌ 找不到 Js/admin.js'"></script>
 </body>
 </html>
