@@ -10,10 +10,10 @@
     .online-orders { width: 30%; background: var(--secondary-color); padding: 20px; overflow-y: auto; border-right: 1px solid rgba(0,0,0,0.1); }
     .order-card { background: var(--white); padding: 15px; border-radius: var(--border-radius); margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
     .order-card h4 { margin: 0 0 10px 0; color: var(--primary-color); }
-    .action-btn { background: var(--primary-color); color: var(--white); border: none; padding: 8px 12px; border-radius: var(--border-radius); cursor: pointer; width: 100%; margin-top: 10px; }
+    .action-btn { background: var(--primary-color); color: var(--white); border: none; padding: 8px 12px; border-radius: var(--border-radius); cursor: pointer; width: 100%; margin-top: 10px; font-weight:bold; }
     .menu-area { width: 45%; padding: 20px; display: flex; flex-direction: column; }
     .category-tabs { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; }
-    .tab-btn { padding: 10px 20px; background: var(--white); border: 1px solid var(--primary-color); color: var(--primary-color); border-radius: 20px; cursor: pointer; white-space: nowrap; }
+    .tab-btn { padding: 10px 20px; background: var(--white); border: 1px solid var(--primary-color); color: var(--primary-color); border-radius: 20px; cursor: pointer; white-space: nowrap; font-weight:bold; }
     .tab-btn.active { background: var(--primary-color); color: var(--white); }
     .pos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; overflow-y: auto; }
     .pos-item { background: var(--white); padding: 15px; border-radius: var(--border-radius); text-align: center; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
@@ -43,9 +43,18 @@
   </div>
 
   <div class="checkout-area">
-    <h3>目前訂單 (訪客)</h3>
+    <h3>目前訂單 (現場客)</h3>
     <div class="cart-list" id="pos-cart-list"></div>
     <div class="total-display" id="pos-total">Total: $0</div>
+    
+    <div class="category-tabs" style="margin-bottom: 15px;">
+      <input type="radio" name="posDineInType" id="pos-takeaway" value="外帶" style="display:none;" checked>
+      <label for="pos-takeaway" class="tab-btn active" onclick="document.getElementById('pos-takeaway').checked=true; document.querySelectorAll('label[for^=pos-]').forEach(l=>l.classList.remove('active')); this.classList.add('active');" style="flex:1; text-align:center;">🛍️ 外帶</label>
+      
+      <input type="radio" name="posDineInType" id="pos-dinein" value="內用" style="display:none;">
+      <label for="pos-dinein" class="tab-btn" onclick="document.getElementById('pos-dinein').checked=true; document.querySelectorAll('label[for^=pos-]').forEach(l=>l.classList.remove('active')); this.classList.add('active');" style="flex:1; text-align:center;">🍽️ 內用</label>
+    </div>
+
     <div class="pay-btn-group">
       <button class="pay-btn pay-cash" onclick="processCheckout('現金')">現金結帳</button>
       <button class="pay-btn pay-line" onclick="processCheckout('LINE Pay')">LINE Pay</button>
