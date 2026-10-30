@@ -271,15 +271,16 @@ function openCheckoutModal() {
 async function submitOrder() {
   if(shoppingCart.length === 0) return;
   const payMethod = document.querySelector('input[name="payMethod"]:checked').value;
+  const dineInType = document.querySelector('input[name="dineInType"]:checked').value; 
   const total = shoppingCart.reduce((s, i) => s + i.price, 0);
   
-  // 取消由前端直接產生 ID，交由後端生成處理
   const payload = {
     action: "appendOrder",
     orderData: {
       timestamp: new Date().toLocaleString("zh-TW", {timeZone: "Asia/Taipei"}),
       uid: currentUser.uid,
       name: currentUser.name,
+      dineInType: dineInType, // 送出內用外帶設定
       itemsJson: JSON.stringify(shoppingCart),
       originalTotal: total,
       discount: 0,
@@ -294,7 +295,7 @@ async function submitOrder() {
     const res = await fetch(APP_CONFIG.GAS_API_URL, { method: "POST", body: JSON.stringify(payload) });
     const result = await res.json();
     if(result.success) {
-      alert(`訂單 ${result.orderId} 送出成功！\n請至櫃檯完成結帳/取餐。`);
+      alert(`訂單 ${result.orderId} 送出成功！\n(${dineInType}) 請至櫃檯完成結帳/取餐。`);
       shoppingCart = [];
       updateCartUI();
     }
