@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Café Connect - POS 櫃台系統</title>
+  <style>
+    :root {
+      --primary-color: #8D6E63;
+      --secondary-color: #D7CCC8;
+      --bg-color: #F5F5DC; /* 溫暖紙質底色 */
+      --text-main: #3E2723;
+      --white: #FFFFFF;
+      --border-radius: 8px;
+    }
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      margin: 0;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+    /* 左側：線上單處理區 */
+    .online-orders {
+      width: 30%;
+      background: var(--secondary-color);
+      padding: 20px;
+      overflow-y: auto;
+      border-right: 1px solid rgba(0,0,0,0.1);
+    }
+    .order-card {
+      background: var(--white);
+      padding: 15px;
+      border-radius: var(--border-radius);
+      margin-bottom: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .order-card h4 { margin: 0 0 10px 0; color: var(--primary-color); }
+    .action-btn {
+      background: var(--primary-color);
+      color: var(--white);
+      border: none;
+      padding: 8px 12px;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      width: 100%;
+      margin-top: 10px;
+    }
+    /* 中間：商品分類與列表 */
+    .menu-area {
+      width: 45%;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+    .category-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      padding: 10px 20px;
+      background: var(--white);
+      border: 1px solid var(--primary-color);
+      color: var(--primary-color);
+      border-radius: 20px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .tab-btn.active {
+      background: var(--primary-color);
+      color: var(--white);
+    }
+    .pos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 15px;
+      overflow-y: auto;
+    }
+    .pos-item {
+      background: var(--white);
+      padding: 15px;
+      border-radius: var(--border-radius);
+      text-align: center;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .pos-item:hover { border: 2px solid var(--primary-color); }
+    /* 右側：購物車與結帳 */
+    .checkout-area {
+      width: 25%;
+      background: var(--white);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid rgba(0,0,0,0.1);
+    }
+    .cart-list { flex: 1; overflow-y: auto; margin-bottom: 20px; }
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      border-bottom: 1px dashed #ccc;
+      padding-bottom: 10px;
+    }
+    .total-display {
+      font-size: 24px;
+      font-weight: bold;
+      text-align: right;
+      margin-bottom: 20px;
+      color: var(--primary-color);
+    }
+    .pay-btn-group { display: flex; flex-direction: column; gap: 10px; }
+    .pay-btn {
+      padding: 15px;
+      border: none;
+      border-radius: var(--border-radius);
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .pay-cash { background: #4CAF50; color: white; }
+    .pay-line { background: #00C300; color: white; }
+  </style>
+</head>
+<body>
+
+  <!-- 左側：待接單區 -->
+  <div class="online-orders">
+    <h3>線上點餐待處理</h3>
+    <div id="pending-orders-container">
+      <!-- 待處理訂單將由 JS 渲染 -->
+    </div>
+  </div>
+
+  <!-- 中間：分類與商品區 -->
+  <div class="menu-area">
+    <div class="category-tabs" id="category-tabs">
+      <!-- 分類標籤 -->
+    </div>
+    <div class="pos-grid" id="pos-grid">
+      <!-- 點擊分類後顯示商品 -->
+    </div>
+  </div>
+
+  <!-- 右側：結帳區 -->
+  <div class="checkout-area">
+    <h3>目前訂單 (訪客)</h3>
+    <div class="cart-list" id="pos-cart-list">
+      <!-- 購物車項目 -->
+    </div>
+    <div class="total-display" id="pos-total">Total: $0</div>
+    <div class="pay-btn-group">
+      <button class="pay-btn pay-cash" onclick="processCheckout('現金')">現金結帳</button>
+      <button class="pay-btn pay-line" onclick="processCheckout('LINE Pay')">LINE Pay</button>
+      <button class="action-btn" style="background:#555;" onclick="clearCart()">清空重來</button>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/pos.js"></script>
+</body>
+</html>
