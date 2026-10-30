@@ -1,5 +1,5 @@
 /**
- * Js/app.js - 顧客點餐前端邏輯 (完整結帳與會員專區)
+ * Js/app.js - 顧客點餐前端邏輯
  */
 
 let shoppingCart = [];
@@ -83,7 +83,7 @@ async function submitRegistration() {
   const name = document.getElementById("reg-name").value.trim();
   const phone = document.getElementById("reg-phone").value.trim();
   const floor = document.getElementById("reg-floor").value.trim();
-  const note = document.getElementById("reg-note").value.trim(); // 新增擷取備註內容
+  const note = document.getElementById("reg-note").value.trim(); 
   
   if (!name || !phone) { alert("請填寫姓名與手機號碼！"); return; }
   
@@ -94,7 +94,6 @@ async function submitRegistration() {
       method: "POST",
       body: JSON.stringify({ 
         action: "registerUser", 
-        // 將 note 也打包傳送給後端
         userData: { uid: tempUserProfile.uid, name, phone, floor, note } 
       })
     });
@@ -273,12 +272,11 @@ async function submitOrder() {
   if(shoppingCart.length === 0) return;
   const payMethod = document.querySelector('input[name="payMethod"]:checked').value;
   const total = shoppingCart.reduce((s, i) => s + i.price, 0);
-  const orderId = "ORD" + Date.now().toString().slice(-6);
   
+  // 取消由前端直接產生 ID，交由後端生成處理
   const payload = {
     action: "appendOrder",
     orderData: {
-      orderId: orderId,
       timestamp: new Date().toLocaleString("zh-TW", {timeZone: "Asia/Taipei"}),
       uid: currentUser.uid,
       name: currentUser.name,
@@ -296,7 +294,7 @@ async function submitOrder() {
     const res = await fetch(APP_CONFIG.GAS_API_URL, { method: "POST", body: JSON.stringify(payload) });
     const result = await res.json();
     if(result.success) {
-      alert(`訂單 ${orderId} 送出成功！\n請至櫃檯完成結帳/取餐。`);
+      alert(`訂單 ${result.orderId} 送出成功！\n請至櫃檯完成結帳/取餐。`);
       shoppingCart = [];
       updateCartUI();
     }
