@@ -52,21 +52,18 @@
     .cart-bar { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); width: calc(100% - 48px); max-width: 552px; background: var(--text-main); color: var(--bg-color); padding: 16px 24px; border-radius: 100px; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.15); z-index: 100; }
     .cart-btn { background: var(--accent-color); color: var(--card-bg); border: none; padding: 10px 20px; border-radius: 100px; font-weight: 500; font-size: 14px; cursor: pointer; }
 
-    /* Modal 共用樣式 */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; display: flex; align-items: flex-end; justify-content: center; }
     .modal-overlay.active { opacity: 1; pointer-events: auto; }
     .modal-content { background: var(--bg-color); width: 100%; max-width: 600px; border-radius: 24px 24px 0 0; padding: 30px 24px; box-sizing: border-box; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.1, 1, 0.2, 1); max-height: 85vh; overflow-y: auto; position: relative; }
     .modal-overlay.active .modal-content { transform: translateY(0); }
     .close-modal { position: absolute; top: 20px; right: 24px; background: rgba(0,0,0,0.05); border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 16px; cursor: pointer; color: var(--text-main); display: flex; align-items: center; justify-content: center; }
     
-    /* 結帳明細清單 */
     .cart-item-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); padding: 12px 0; }
     .cart-item-info h4 { margin: 0 0 4px 0; font-size: 15px; color: var(--text-main); }
     .cart-item-spec { margin: 0; font-size: 12px; color: var(--text-muted); }
     .cart-item-price { font-weight: bold; color: var(--accent-color); }
     .remove-btn { color: red; background: none; border: none; font-size: 12px; cursor: pointer; margin-top: 4px; padding: 0;}
     
-    /* 會員專區 */
     .member-stats { display: flex; gap: 10px; margin: 20px 0; }
     .stat-card { flex: 1; background: var(--card-bg); padding: 15px; border-radius: 12px; text-align: center; border: 1px solid #E0DCD6; }
     .stat-val { font-size: 18px; font-weight: bold; color: var(--accent-color); margin-bottom: 4px; }
@@ -74,7 +71,6 @@
     .history-list { margin-top: 20px; }
     .history-item { background: var(--card-bg); padding: 12px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #E0DCD6; font-size: 13px; }
 
-    /* 其他共用元件 */
     .modal-header { display: flex; margin-bottom: 20px; }
     .modal-img { width: 100px; height: 100px; border-radius: 12px; object-fit: cover; margin-right: 20px; }
     .modal-title { font-family: 'Noto Serif TC', serif; font-size: 20px; font-weight: 700; margin: 0 0 8px 0; color: var(--text-main); }
@@ -89,7 +85,6 @@
     .custom-note-input { width: 100%; padding: 12px 16px; border: 1px solid #E0DCD6; border-radius: 12px; font-family: 'Noto Sans TC', sans-serif; font-size: 14px; box-sizing: border-box; background: var(--card-bg); color: var(--text-main); outline: none; }
     .modal-add-btn { width: 100%; background: var(--text-main); color: var(--bg-color); border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 10px; }
 
-    /* 載入畫面 */
     #loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
     #loading-screen h2 { font-family: 'Noto Serif TC', serif; color: var(--text-main); font-weight: 500; letter-spacing: 2px; margin-top: 20px; margin-bottom: 5px; }
     #loading-text { color: var(--text-muted); font-size: 13px; letter-spacing: 1px; }
@@ -116,7 +111,6 @@
 
   <header>
     <div class="logo"><img id="shop-logo" src="logo.jpg" alt="Logo" onerror="this.src='https://via.placeholder.com/120x40?text=MUGI+Elegance'"></div>
-    <!-- 點擊頭像區塊開啟會員面板 -->
     <div class="user-profile" id="user-profile" onclick="openMemberProfile()">
       <div id="admin-entrance" onclick="event.stopPropagation()">
         <button class="admin-link-btn" onclick="window.location.href='pos.html'">POS</button>
@@ -141,13 +135,14 @@
   <div class="container" id="menu-container"></div>
   <div class="cart-bar"><div id="cart-summary">Cart • 0 | $0</div><button class="cart-btn" onclick="openCheckoutModal()">結帳</button></div>
 
-  <!-- 註冊彈窗 -->
+  <!-- 註冊彈窗：新增其他備註欄位 -->
   <div class="modal-overlay" id="register-modal">
     <div class="modal-content">
       <h3 class="modal-title">完善會員資料</h3>
       <div class="option-group"><div class="option-title">姓名</div><input type="text" id="reg-name" class="custom-note-input"></div>
       <div class="option-group"><div class="option-title">手機號碼 (必填)</div><input type="tel" id="reg-phone" class="custom-note-input" required></div>
-      <div class="option-group"><div class="option-title">大樓樓層 (選填)</div><input type="text" id="reg-floor" class="custom-note-input"></div>
+      <div class="option-group"><div class="option-title">大樓樓層 (選填)</div><input type="text" id="reg-floor" class="custom-note-input" placeholder="例如：寰宇大樓 5F"></div>
+      <div class="option-group"><div class="option-title">其他備註 (選填)</div><input type="text" id="reg-note" class="custom-note-input" placeholder="例如：個人喜好或特殊需求"></div>
       <button class="modal-add-btn" onclick="submitRegistration()">完成註冊</button>
     </div>
   </div>
