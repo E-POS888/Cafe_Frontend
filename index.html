@@ -37,7 +37,8 @@
 
   <header>
     <div class="logo">
-      <img id="shop-logo" src="logo.png" alt="Logo" onerror="this.src='https://via.placeholder.com/120x40?text=LOGO'">
+      <!-- 根據你 3059.jpg 的截圖，你的圖片檔名為 logo.jpg -->
+      <img id="shop-logo" src="logo.jpg" alt="Logo" onerror="this.src='https://via.placeholder.com/120x40?text=LOGO'">
     </div>
     <div class="user-profile" id="user-profile">
       <img id="profile-img" src="https://via.placeholder.com/28" alt="User">
@@ -52,9 +53,9 @@
     <button class="cart-btn" onclick="openCart()">查看訂單</button>
   </div>
 
-  <!-- 加入 onerror 防呆偵測，若找不到檔案會直接在畫面顯示紅字 -->
-  <script src="JS/config.js" onerror="document.getElementById('loading-text').innerHTML='<span style=\'color:red;\'>❌ 找不到 JS/config.js，請檢查 GitHub 上的資料夾是否為大寫 JS</span>'"></script>
-  <script src="JS/app.js" onerror="document.getElementById('loading-text').innerHTML='<span style=\'color:red;\'>❌ 找不到 JS/app.js，請檢查 GitHub 上的資料夾是否為大寫 JS</span>'"></script>
+  <!-- 【重要修改】將路徑從 JS/ 改為 Js/ 以完全吻合 GitHub 實際路徑 -->
+  <script src="Js/config.js" onerror="document.getElementById('loading-text').innerHTML='<span style=\'color:red;\'>❌ 找不到 Js/config.js，請檢查檔案是否存在</span>'"></script>
+  <script src="Js/app.js" onerror="document.getElementById('loading-text').innerHTML='<span style=\'color:red;\'>❌ 找不到 Js/app.js，請檢查檔案是否存在</span>'"></script>
 
 </body>
 </html>
