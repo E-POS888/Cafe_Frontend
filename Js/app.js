@@ -1,45 +1,59 @@
 /**
- * app.js - 顧客點餐前端邏輯
+ * app.js - 顧客點餐前端邏輯 (加入錯誤偵測機制)
  */
 
-// 購物車資料陣列
 let shoppingCart = [];
 let currentUser = {};
 
 document.addEventListener("DOMContentLoaded", () => {
-  // 1. 系統啟動，初始化 LIFF (若尚未填入 LIFF ID，則先執行本地測試模式)
+  // 檢查 config.js 是否有成功載入
+  if (typeof APP_CONFIG === 'undefined') {
+    showError("設定檔載入失敗，請檢查 HTML 中的檔案路徑大小寫");
+    return;
+  }
+  
   if (APP_CONFIG.LIFF_ID === "YOUR_LIFF_ID_HERE") {
-    console.log("未設定 LIFF ID，進入本地測試模式");
-    mockLoginAndLoadData();
+    showError("尚未設定 LIFF ID");
   } else {
     initializeLiff(APP_CONFIG.LIFF_ID);
   }
 });
 
 /**
+ * 錯誤訊息顯示機制
+ */
+function showError(msg) {
+  const loadText = document.getElementById("loading-text");
+  if (loadText) {
+    loadText.textContent = "❌ " + msg;
+    loadText.style.color = "red";
+    loadText.style.fontWeight = "bold";
+  }
+}
+
+/**
  * 初始化 LINE LIFF
  */
 async function initializeLiff(myLiffId) {
   try {
+    document.getElementById("loading-text").textContent = "正在連接 LINE 服務...";
     await liff.init({ liffId: myLiffId });
+    
     if (!liff.isLoggedIn()) {
+      document.getElementById("loading-text").textContent = "準備跳轉 LINE 登入...";
       liff.login();
       return;
     }
     
-    // 取得使用者公開資料
     const profile = await liff.getProfile();
     updateProfileUI(profile.displayName, profile.pictureUrl);
     
-    // 向 GAS 驗證會員身分
     await verifyUserWithBackend(profile.userId, profile.displayName);
-    
-    // 載入商品菜單
     await fetchMenuFromBackend();
     
   } catch (err) {
     console.error("LIFF 初始化失敗", err);
-    alert("LINE 登入失敗，請重新整理頁面。");
+    showError("LINE 驗證失敗，請確保使用 LINE App 點開連結");
   }
 }
 
@@ -47,8 +61,10 @@ async function initializeLiff(myLiffId) {
  * 更新頂部會員 UI
  */
 function updateProfileUI(name, picUrl) {
-  document.getElementById("profile-name").textContent = name;
-  if(picUrl) document.getElementById("profile-img").src = picUrl;
+  const nameEl = document.getElementById("profile-name");
+  const imgEl = document.getElementById("profile-img");
+  if(nameEl) nameEl.textContent = name;
+  if(imgEl && picUrl) imgEl.src = picUrl;
 }
 
 /**
@@ -66,11 +82,12 @@ async function verifyUserWithBackend(uid, name) {
     const result = await response.json();
     currentUser = { uid: uid, name: name };
     
-    if (result.data.isNewUser) {
+    if (result.data && result.data.isNewUser) {
       alert("歡迎首次光臨！未來結帳時請向櫃檯提供電話號碼完成綁定。");
     }
   } catch (error) {
     console.error("驗證失敗", error);
+    showError("會員驗證失敗，請檢查 GAS API 網址");
   }
 }
 
@@ -90,11 +107,14 @@ async function fetchMenuFromBackend() {
     
     if (result.success) {
       renderMenu(result.data);
+      // 資料載入成功，關閉遮罩
       document.getElementById("loading-screen").style.display = "none";
+    } else {
+      showError("資料庫讀取失敗：" + (result.error || result.message));
     }
   } catch (error) {
     console.error("菜單載入失敗", error);
-    document.getElementById("loading-text").textContent = "菜單載入失敗，請稍後再試。";
+    showError("無法連線至資料庫，請確認 GAS 是否已發布為最新版");
   }
 }
 
@@ -103,9 +123,9 @@ async function fetchMenuFromBackend() {
  */
 function renderMenu(menuData) {
   const container = document.getElementById("menu-container");
+  if(!container) return;
   container.innerHTML = ""; 
   
-  // 依照大類別進行分組
   const categories = {};
   menuData.forEach(item => {
     const cat = item["大類別"];
@@ -113,7 +133,6 @@ function renderMenu(menuData) {
     categories[cat].push(item);
   });
   
-  // 建立 HTML 元素
   for (const [catName, items] of Object.entries(categories)) {
     const section = document.createElement("div");
     section.innerHTML = `<div class="category-title">${catName}</div>`;
@@ -122,7 +141,6 @@ function renderMenu(menuData) {
     grid.className = "product-grid";
     
     items.forEach(item => {
-      // 若無照片，給予預設圖
       const imgUrl = item["照片網址(Drive)"] || "https://via.placeholder.com/80?text=No+Image";
       const card = document.createElement("div");
       card.className = "product-card";
@@ -146,7 +164,6 @@ function renderMenu(menuData) {
  * 加入購物車邏輯
  */
 function addToCart(id, name, price) {
-  // 這裡預留後續實作冰熱/甜度客製化彈窗的位置
   shoppingCart.push({ id, name, price, qty: 1 });
   updateCartUI();
 }
@@ -157,7 +174,10 @@ function addToCart(id, name, price) {
 function updateCartUI() {
   const totalQty = shoppingCart.length;
   const totalPrice = shoppingCart.reduce((sum, item) => sum + item.price, 0);
-  document.getElementById("cart-summary").textContent = `購物車：${totalQty} 項 | $${totalPrice}`;
+  const cartSummary = document.getElementById("cart-summary");
+  if(cartSummary) {
+    cartSummary.textContent = `購物車：${totalQty} 項 | $${totalPrice}`;
+  }
 }
 
 /**
@@ -169,14 +189,4 @@ function openCart() {
     return;
   }
   alert("即將進入結帳畫面，準備送單至後台...");
-  // 未來將在此實作送出訂單至 appendOrder API 的邏輯
-}
-
-/**
- * 供本機無 LIFF ID 時測試用的模擬登入程序
- */
-async function mockLoginAndLoadData() {
-  updateProfileUI("測試訪客", "");
-  await verifyUserWithBackend("U_MOCK_123", "測試訪客");
-  await fetchMenuFromBackend();
 }
