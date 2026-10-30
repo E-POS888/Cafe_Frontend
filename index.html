@@ -121,8 +121,8 @@
 
   <header>
     <div class="logo">
-      <!-- 替換為你的專屬 Logo 網址 -->
-      <img id="shop-logo" src="assets/logo.png" alt="Logo">
+      <!-- 【請留意這行】目前設定為讀取跟 index.html 同一層的 logo.png，如果你的檔名不同，請直接修改 src="你的檔名" -->
+      <img id="shop-logo" src="logo.jpg" alt="Logo" onerror="this.src='https://via.placeholder.com/120x40?text=LOGO'">
     </div>
     <div class="user-profile" id="user-profile">
       <img id="profile-img" src="https://via.placeholder.com/28" alt="User">
@@ -139,9 +139,9 @@
     <button class="cart-btn" onclick="openCart()">查看訂單</button>
   </div>
 
-  <!-- 載入全域設定與邏輯 (已更新為大寫 Js 資料夾) -->
-  <script src="Js/config.js"></script>
-  <script src="Js/app.js"></script>
+  <!-- 載入全域設定與邏輯 (已對齊 GitHub 上的大寫 JS 資料夾名稱) -->
+  <script src="JS/config.js"></script>
+  <script src="JS/app.js"></script>
 
 </body>
 </html>
