@@ -12,11 +12,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   fetchMenu();
   fetchOnlineOrders();
-  // 每 15 秒自動刷新線上訂單
-  setInterval(fetchOnlineOrders, 15000);
+  setInterval(fetchOnlineOrders, 15000); // 15秒自動刷新接單
 });
 
-// --- 處理線上訂單 (左側區塊) ---
+// --- 處理線上訂單 (左側) ---
 async function fetchOnlineOrders() {
   const container = document.getElementById("pending-orders-container");
   try {
@@ -44,7 +43,6 @@ async function fetchOnlineOrders() {
           });
         } catch (e) { itemsHtml = "無法解析商品內容"; }
 
-        // 依據狀態顯示不同的操作按鈕
         let actionBtnHtml = "";
         if (order["訂單狀態"] === "等待結帳") {
           actionBtnHtml = `<button class="action-btn" onclick="updateOrderStatus('${order["訂單編號"]}', '製作中')">接單 (轉製作中)</button>`;
@@ -52,11 +50,18 @@ async function fetchOnlineOrders() {
           actionBtnHtml = `<button class="action-btn" style="background:#388e3c;" onclick="updateOrderStatus('${order["訂單編號"]}', '已完成')">✅ 完成結帳</button>`;
         }
 
+        const dineInBadge = order["用餐方式"] === '內用' 
+          ? `<span style="padding:4px 8px; border-radius:6px; background:#e65100; color:white; font-size:12px; font-weight:bold;">🍽️ 內用</span>` 
+          : `<span style="padding:4px 8px; border-radius:6px; background:#8D6E63; color:white; font-size:12px; font-weight:bold;">🛍️ 外帶</span>`;
+
         const card = document.createElement("div");
         card.className = "order-card";
         card.innerHTML = `
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h4>${order["會員姓名"]} <span style="font-size:12px; color:#666;">(${order["訂單編號"]})</span></h4>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+            <div>
+              <h4 style="margin-bottom:4px;">${order["會員姓名"]} <span style="font-size:12px; color:#666;">(${order["訂單編號"]})</span></h4>
+              ${dineInBadge}
+            </div>
             <span style="font-size:12px; font-weight:bold; color: ${order["訂單狀態"] === '製作中' ? '#e65100' : '#d32f2f'};">${order["訂單狀態"]}</span>
           </div>
           <div style="margin: 10px 0; border-left: 2px solid #ccc; padding-left: 8px;">${itemsHtml}</div>
@@ -82,17 +87,12 @@ async function updateOrderStatus(orderId, newStatus) {
       body: JSON.stringify({ action: "updateOrderStatus", orderId: orderId, status: newStatus })
     });
     const result = await response.json();
-    if (result.success) {
-      fetchOnlineOrders(); // 刷新列表
-    } else {
-      alert("狀態更新失敗：" + result.message);
-    }
-  } catch (error) {
-    alert("系統連線錯誤");
-  }
+    if (result.success) fetchOnlineOrders();
+    else alert("狀態更新失敗：" + result.message);
+  } catch (error) { alert("系統連線錯誤"); }
 }
 
-// --- 處理現場訪客點餐 (中/右側區塊) ---
+// --- 處理現場訪客點餐 (中/右側) ---
 async function fetchMenu() {
   try {
     const response = await fetch(APP_CONFIG.GAS_API_URL, {
@@ -104,16 +104,12 @@ async function fetchMenu() {
       menuData = result.data;
       renderPosMenu(menuData);
     }
-  } catch (error) {
-    document.getElementById("pos-grid").innerHTML = "<p>菜單載入失敗</p>";
-  }
+  } catch (error) { document.getElementById("pos-grid").innerHTML = "<p>菜單載入失敗</p>"; }
 }
 
 function renderPosMenu(data) {
   const tabsContainer = document.getElementById("category-tabs");
-  const gridContainer = document.getElementById("pos-grid");
   tabsContainer.innerHTML = "";
-  
   const categories = [...new Set(data.map(item => item["大類別"]))];
   
   categories.forEach((cat, index) => {
@@ -127,7 +123,6 @@ function renderPosMenu(data) {
     };
     tabsContainer.appendChild(btn);
   });
-  
   if(categories.length > 0) renderPosGrid(categories[0]);
 }
 
@@ -186,13 +181,18 @@ function updatePosCartUI() {
 async function processCheckout(payMethod) {
   if (posCart.length === 0) { alert("購物車是空的"); return; }
   
+  let posDineIn = "外帶";
+  const dineInEl = document.querySelector('input[name="posDineInType"]:checked');
+  if(dineInEl) posDineIn = dineInEl.value;
+
   const total = posCart.reduce((s, i) => s + i.price, 0);
   const payload = {
     action: "appendOrder",
     orderData: {
       timestamp: new Date().toLocaleString("zh-TW", {timeZone: "Asia/Taipei"}),
       uid: "GUEST_" + Date.now().toString().slice(-6),
-      name: "現場訪客",
+      name: "現場客",
+      dineInType: posDineIn, 
       itemsJson: JSON.stringify(posCart.map(i => ({ name: i.name, price: i.price, qty: 1 }))),
       originalTotal: total,
       discount: 0,
@@ -202,21 +202,12 @@ async function processCheckout(payMethod) {
   };
   
   try {
-    const response = await fetch(APP_CONFIG.GAS_API_URL, {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
+    const response = await fetch(APP_CONFIG.GAS_API_URL, { method: "POST", body: JSON.stringify(payload) });
     const result = await response.json();
     if(result.success) {
-      // 現場客預設直接完成結帳，不需再進等待區
-      await fetch(APP_CONFIG.GAS_API_URL, {
-        method: "POST",
-        body: JSON.stringify({ action: "updateOrderStatus", orderId: result.orderId, status: "已完成" })
-      });
-      alert(`訪客結帳成功 (${payMethod})\n找零或收單完畢。`);
+      await fetch(APP_CONFIG.GAS_API_URL, { method: "POST", body: JSON.stringify({ action: "updateOrderStatus", orderId: result.orderId, status: "已完成" }) });
+      alert(`現場結帳完成 (${posDineIn} / ${payMethod})`);
       clearCart();
     }
-  } catch (error) {
-    alert("結帳發生錯誤");
-  }
+  } catch (error) { alert("結帳發生錯誤"); }
 }
