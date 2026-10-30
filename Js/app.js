@@ -1,9 +1,10 @@
 /**
- * Js/app.js - 顧客點餐前端邏輯 (加入圖片輪播與橫向導航)
+ * Js/app.js - 顧客點餐前端邏輯 (加入嚴謹會員註冊與權限判斷)
  */
 
 let shoppingCart = [];
-let currentUser = {};
+let currentUser = { role: "顧客" }; 
+let tempUserProfile = null; // 用於暫存 LINE 傳來的個資，以便註冊時使用
 let fullMenuData = []; 
 let currentSelectingItem = null; 
 
@@ -13,10 +14,9 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
   initializeLiff(APP_CONFIG.LIFF_ID);
-  initCarousel(); // 啟動圖片輪播
+  initCarousel(); 
 });
 
-// 圖片輪播邏輯
 function initCarousel() {
   const images = document.querySelectorAll('.carousel-img');
   if(images.length === 0) return;
@@ -25,7 +25,7 @@ function initCarousel() {
     images[currentIndex].classList.remove('active');
     currentIndex = (currentIndex + 1) % images.length;
     images[currentIndex].classList.add('active');
-  }, 4000); // 每 4 秒切換一張
+  }, 4000); 
 }
 
 function showError(msg) {
@@ -49,7 +49,6 @@ async function initializeLiff(myLiffId) {
     const profile = await liff.getProfile();
     updateProfileUI(profile.displayName, profile.pictureUrl);
     await verifyUserWithBackend(profile.userId, profile.displayName);
-    await fetchMenuFromBackend();
   } catch (err) {
     showError("LINE 驗證失敗，請重新載入網頁。");
   }
@@ -62,17 +61,79 @@ function updateProfileUI(name, picUrl) {
   if(imgEl && picUrl) imgEl.src = picUrl;
 }
 
+// 修改：攔截新會員，若找不到資料則強迫填寫註冊單
 async function verifyUserWithBackend(uid, name) {
-  document.getElementById("loading-text").textContent = "正在驗證會員資料...";
+  document.getElementById("loading-text").textContent = "正在驗證會員權限...";
   try {
     const response = await fetch(APP_CONFIG.GAS_API_URL, {
       method: "POST",
       body: JSON.stringify({ action: "loginUser", uid: uid, name: name })
     });
     const result = await response.json();
-    currentUser = { uid: uid, name: name };
+    
+    // 判斷是否為新會員
+    if (result.data && result.data.isNewUser) {
+      tempUserProfile = result.data.profile; // 暫存 UID 資訊
+      document.getElementById("reg-name").value = tempUserProfile.name; // 預設帶入 LINE 暱稱
+      document.getElementById("loading-screen").style.display = "none"; // 隱藏載入遮罩
+      document.getElementById("register-modal").classList.add("active"); // 彈出註冊表單
+    } else if (result.data && !result.data.isNewUser) {
+      // 舊會員：正常登入程序
+      currentUser = { 
+        uid: uid, 
+        name: result.data.userData["姓名(可變更)"], 
+        role: result.data.userData["系統權限"] 
+      };
+      
+      if (currentUser.role === "管理員") {
+        document.getElementById("admin-entrance").style.display = "block";
+      }
+      await fetchMenuFromBackend();
+    }
   } catch (error) {
     showError("會員驗證失敗，請檢查 API。");
+  }
+}
+
+// 新增：提交註冊表單
+async function submitRegistration() {
+  const nameInput = document.getElementById("reg-name").value.trim();
+  const phoneInput = document.getElementById("reg-phone").value.trim();
+  const floorInput = document.getElementById("reg-floor").value.trim();
+  const noteInput = document.getElementById("reg-note").value.trim();
+  
+  if (!nameInput) { alert("請填寫姓名！"); return; }
+  if (!phoneInput) { alert("請填寫手機號碼 (必填)！"); return; }
+  
+  // 關閉註冊表單，顯示載入中
+  document.getElementById("register-modal").classList.remove("active");
+  document.getElementById("loading-screen").style.display = "flex";
+  document.getElementById("loading-text").textContent = "正在建立會員資料...";
+  
+  const userData = {
+    uid: tempUserProfile.uid,
+    name: nameInput,
+    phone: phoneInput,
+    floor: floorInput,
+    note: noteInput
+  };
+  
+  try {
+    const response = await fetch(APP_CONFIG.GAS_API_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "registerUser", userData: userData })
+    });
+    const result = await response.json();
+    
+    if (result.success) {
+       // 註冊成功，更新本地使用者資訊，並載入菜單
+       currentUser = { uid: userData.uid, name: userData.name, role: "顧客" };
+       await fetchMenuFromBackend();
+    } else {
+       showError("註冊失敗：" + result.error);
+    }
+  } catch (error) {
+     showError("網路連線錯誤，無法完成註冊。");
   }
 }
 
@@ -114,17 +175,14 @@ function renderMenu(menuData) {
   
   let isFirst = true;
   for (const [catName, items] of Object.entries(categories)) {
-    // 1. 建立懸浮導航按鈕
     const navBtn = document.createElement("button");
     navBtn.className = `nav-tab ${isFirst ? 'active' : ''}`;
     navBtn.textContent = catName;
     navBtn.onclick = () => {
-      // 點擊導航平滑滾動到對應區塊
       document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
       navBtn.classList.add('active');
       const section = document.getElementById(`cat-${catName}`);
       if(section) {
-        // 扣除 header 高度避免被遮擋
         const y = section.getBoundingClientRect().top + window.scrollY - 110;
         window.scrollTo({top: y, behavior: 'smooth'});
       }
@@ -132,9 +190,8 @@ function renderMenu(menuData) {
     stickyNav.appendChild(navBtn);
     isFirst = false;
 
-    // 2. 建立商品區塊
     const section = document.createElement("div");
-    section.id = `cat-${catName}`; // 設定錨點 ID
+    section.id = `cat-${catName}`; 
     section.className = "category-section";
     section.innerHTML = `<div class="category-title">${catName}</div>`;
     
@@ -163,10 +220,7 @@ function renderMenu(menuData) {
   }
 }
 
-/* =========================================
-   客製化彈窗控制邏輯
-   ========================================= */
-
+/* 客製化彈窗控制邏輯 (保持原樣，負責呈現商品細節) */
 function openProductModal(productId) {
   currentSelectingItem = fullMenuData.find(item => item["商品編號"] === productId);
   if(!currentSelectingItem) return;
