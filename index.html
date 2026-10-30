@@ -16,7 +16,6 @@
   <style>
     /* =========================================
        精品咖啡館高客製化設計系統 (Design Tokens)
-       透過修改此區塊，即可快速適應不同品牌風格
        ========================================= */
     :root {
       --bg-color: #F9F8F6;       /* 羊絨暖白：溫柔的紙質背景 */
@@ -24,7 +23,7 @@
       --text-muted: #8C8C8C;     /* 雅緻灰：用於次要資訊 */
       --accent-color: #B59B70;   /* 香檳金：提升質感的點綴色 */
       --card-bg: #FFFFFF;        /* 純白：凸顯商品卡片 */
-      --border-radius: 12px;     /* 微圓角：現代且俐落 */
+      --border-radius: 12px;
       --transition: all 0.3s ease;
     }
 
@@ -38,7 +37,6 @@
       letter-spacing: 0.5px;
     }
 
-    /* 頂部導覽與會員區塊 (毛玻璃質感) */
     header {
       background: rgba(249, 248, 246, 0.85);
       backdrop-filter: blur(12px);
@@ -53,194 +51,142 @@
       border-bottom: 1px solid rgba(0,0,0,0.03);
     }
     
-    .logo img { 
-      height: 32px; 
-      object-fit: contain;
-    }
+    .logo img { height: 32px; object-fit: contain; }
     
-    .user-profile {
-      display: flex;
-      align-items: center;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-main);
-    }
-    
-    .user-profile img { 
-      width: 32px; 
-      height: 32px; 
-      border-radius: 50%; 
-      margin-right: 10px;
-      border: 1px solid rgba(0,0,0,0.05);
-    }
+    .user-profile { display: flex; align-items: center; font-size: 13px; font-weight: 500; color: var(--text-main); }
+    .user-profile img { width: 32px; height: 32px; border-radius: 50%; margin-right: 10px; border: 1px solid rgba(0,0,0,0.05); }
 
-    /* 主視覺與菜單容器 */
-    .container { 
-      padding: 24px; 
-      max-width: 600px;
-      margin: 0 auto;
-    }
+    .container { padding: 24px; max-width: 600px; margin: 0 auto; }
+    .category-title { font-family: 'Noto Serif TC', serif; font-size: 20px; font-weight: 700; margin: 32px 0 20px 0; color: var(--text-main); display: flex; align-items: center; }
+    .category-title::after { content: ''; flex: 1; height: 1px; background: rgba(0,0,0,0.06); margin-left: 16px; }
 
-    /* 類別標題 (優雅宋體) */
-    .category-title {
-      font-family: 'Noto Serif TC', serif;
-      font-size: 20px;
-      font-weight: 700;
-      margin: 32px 0 20px 0;
-      color: var(--text-main);
-      display: flex;
-      align-items: center;
-    }
-    
-    .category-title::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: rgba(0,0,0,0.06);
-      margin-left: 16px;
-    }
+    .product-grid { display: grid; gap: 20px; }
+    .product-card { background: var(--card-bg); border-radius: var(--border-radius); padding: 16px; display: flex; align-items: center; box-shadow: 0 4px 20px rgba(0,0,0,0.02); transition: var(--transition); border: 1px solid transparent; }
+    .product-card:active { transform: scale(0.98); border-color: rgba(181, 155, 112, 0.3); }
+    .product-image { width: 88px; height: 88px; border-radius: 8px; object-fit: cover; margin-right: 20px; background-color: var(--bg-color); }
+    .product-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+    .product-name { font-family: 'Noto Serif TC', serif; font-size: 16px; font-weight: 700; margin: 0 0 6px 0; color: var(--text-main); }
+    .product-price { font-family: 'Noto Sans TC', sans-serif; font-size: 15px; color: var(--accent-color); font-weight: 500; margin-bottom: 12px; }
 
-    /* 商品卡片：極簡留白設計 */
-    .product-grid { 
-      display: grid; 
-      gap: 20px; 
-    }
-    
-    .product-card {
-      background: var(--card-bg);
-      border-radius: var(--border-radius);
-      padding: 16px;
-      display: flex;
-      align-items: center;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.02);
-      transition: var(--transition);
-      border: 1px solid transparent;
-    }
-    
-    .product-card:active {
-      transform: scale(0.98);
-      border-color: rgba(181, 155, 112, 0.3);
-    }
+    .add-btn { align-self: flex-start; background: transparent; color: var(--accent-color); border: 1px solid var(--accent-color); padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: var(--transition); }
+    .add-btn:hover, .add-btn:active { background: var(--accent-color); color: var(--card-bg); }
 
-    .product-image { 
-      width: 88px; 
-      height: 88px; 
-      border-radius: 8px; 
-      object-fit: cover; 
-      margin-right: 20px; 
-      background-color: var(--bg-color);
-    }
+    .cart-bar { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); width: calc(100% - 48px); max-width: 552px; background: var(--text-main); color: var(--bg-color); padding: 16px 24px; border-radius: 100px; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.15); z-index: 1000; }
+    #cart-summary { font-size: 15px; font-weight: 500; letter-spacing: 1px; }
+    .cart-btn { background: var(--accent-color); color: var(--card-bg); border: none; padding: 10px 20px; border-radius: 100px; font-weight: 500; font-size: 14px; cursor: pointer; letter-spacing: 1px; }
 
-    .product-info { 
-      flex: 1; 
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-
-    .product-name { 
-      font-family: 'Noto Serif TC', serif;
-      font-size: 16px; 
-      font-weight: 700; 
-      margin: 0 0 6px 0; 
-      color: var(--text-main);
-    }
-
-    .product-price { 
-      font-family: 'Noto Sans TC', sans-serif;
-      font-size: 15px;
-      color: var(--accent-color); 
-      font-weight: 500; 
-      margin-bottom: 12px;
-    }
-
-    /* 線條感幽靈按鈕 (Ghost Button) */
-    .add-btn {
-      align-self: flex-start;
-      background: transparent;
-      color: var(--accent-color);
-      border: 1px solid var(--accent-color);
-      padding: 6px 16px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: var(--transition);
-    }
-    
-    .add-btn:hover, .add-btn:active {
-      background: var(--accent-color);
-      color: var(--card-bg);
-    }
-
-    /* 底部購物車狀態列 (懸浮優雅感) */
-    .cart-bar {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: calc(100% - 48px);
-      max-width: 552px;
-      background: var(--text-main);
-      color: var(--bg-color);
-      padding: 16px 24px;
-      border-radius: 100px;
-      box-sizing: border-box;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-      z-index: 1000;
-    }
-    
-    #cart-summary {
-      font-size: 15px;
-      font-weight: 500;
-      letter-spacing: 1px;
-    }
-
-    .cart-btn {
-      background: var(--accent-color);
-      color: var(--card-bg);
-      border: none;
-      padding: 10px 20px;
-      border-radius: 100px;
-      font-weight: 500;
-      font-size: 14px;
-      cursor: pointer;
-      letter-spacing: 1px;
-    }
-
-    /* 系統載入遮罩 (詩意漸進) */
+    /* =========================================
+       動態咖啡注入載入畫面 (Loading Animation)
+       ========================================= */
     #loading-screen {
-      position: fixed; 
-      top: 0; left: 0; 
-      width: 100%; height: 100%;
-      background: var(--bg-color);
-      z-index: 9999;
-      display: flex; 
-      flex-direction: column; 
-      justify-content: center; 
-      align-items: center;
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: var(--bg-color); z-index: 9999;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+    }
+    #loading-screen h2 { font-family: 'Noto Serif TC', serif; color: var(--text-main); font-weight: 500; letter-spacing: 2px; margin-top: 20px; margin-bottom: 5px; }
+    #loading-text { color: var(--text-muted); font-size: 13px; letter-spacing: 1px; }
+
+    /* 咖啡動畫容器 */
+    .coffee-loader {
+      position: relative;
+      width: 70px;
+      height: 80px;
     }
     
-    #loading-screen h2 {
-      font-family: 'Noto Serif TC', serif;
-      color: var(--text-main);
-      font-weight: 500;
-      letter-spacing: 2px;
+    /* 極簡咖啡杯主體 */
+    .cup-body {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 50px;
+      height: 40px;
+      border: 3px solid var(--accent-color);
+      border-top: none;
+      border-radius: 0 0 25px 25px;
+      overflow: hidden;
+      z-index: 2;
     }
     
-    #loading-text {
-      color: var(--text-muted);
-      font-size: 14px;
-      margin-top: 8px;
+    /* 極簡杯耳 */
+    .cup-handle {
+      position: absolute;
+      bottom: 10px;
+      left: 53px;
+      width: 12px;
+      height: 18px;
+      border: 3px solid var(--accent-color);
+      border-left: none;
+      border-radius: 0 15px 15px 0;
+      z-index: 1;
+    }
+    
+    /* 注入的咖啡水流 */
+    .stream {
+      position: absolute;
+      top: 0;
+      left: 25px;
+      width: 3px;
+      background-color: var(--text-main);
+      border-radius: 2px;
+      animation: pourDrop 2.5s infinite ease-in;
+      z-index: 1;
+    }
+    
+    /* 杯中上升的咖啡液面 */
+    .liquid {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background-color: var(--text-main);
+      animation: fillUp 2.5s infinite ease-in-out;
+    }
+    
+    /* 緩緩升起的熱氣 */
+    .steam {
+      position: absolute;
+      width: 4px;
+      height: 15px;
+      background: var(--accent-color);
+      border-radius: 10px;
+      opacity: 0;
+      filter: blur(1px);
+      animation: rise 2.5s infinite ease-in-out;
+    }
+    .steam-1 { left: 15px; bottom: 45px; animation-delay: 0.5s; }
+    .steam-2 { left: 35px; bottom: 50px; animation-delay: 1.2s; }
+
+    /* 動畫關鍵影格設定 */
+    @keyframes pourDrop {
+      0% { top: -20px; height: 0; opacity: 0; }
+      15% { top: 0; height: 40px; opacity: 1; }
+      60% { top: 40px; height: 0; opacity: 0; }
+      100% { top: 40px; height: 0; opacity: 0; }
+    }
+    @keyframes fillUp {
+      0%, 15% { height: 0%; }
+      65%, 100% { height: 85%; }
+    }
+    @keyframes rise {
+      0% { transform: translateY(0) scale(1); opacity: 0; }
+      40% { opacity: 0.6; }
+      100% { transform: translateY(-25px) scale(1.5); opacity: 0; }
     }
   </style>
 </head>
 <body>
 
+  <!-- 優雅的咖啡注入動畫載入畫面 -->
   <div id="loading-screen">
+    <div class="coffee-loader">
+      <div class="stream"></div>
+      <div class="steam steam-1"></div>
+      <div class="steam steam-2"></div>
+      <div class="cup-body">
+        <div class="liquid"></div>
+      </div>
+      <div class="cup-handle"></div>
+    </div>
     <h2>Take your time.</h2>
     <p id="loading-text">正在為您準備專屬菜單...</p>
   </div>
