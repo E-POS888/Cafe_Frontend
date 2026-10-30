@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Café Connect - 線上點餐</title>
+  <!-- 引入 LINE LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  
+  <style>
+    /* 咖啡廳溫暖調性 UI */
+    :root {
+      --primary-color: #8D6E63;
+      --secondary-color: #D7CCC8;
+      --bg-color: #FAFAFA;
+      --text-main: #3E2723;
+      --white: #FFFFFF;
+    }
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      margin: 0;
+      padding: 0;
+      padding-bottom: 80px; 
+    }
+    /* 頂部導覽與會員區塊 */
+    header {
+      background-color: var(--white);
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo img { height: 40px; border-radius: 8px; }
+    .user-profile {
+      display: flex;
+      align-items: center;
+      background: var(--secondary-color);
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .user-profile img { width: 28px; height: 28px; border-radius: 50%; margin-right: 8px; }
+    
+    /* 菜單列表區塊 */
+    .container { padding: 20px; }
+    .category-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin: 15px 0;
+      border-left: 4px solid var(--primary-color);
+      padding-left: 10px;
+    }
+    .product-grid { display: grid; gap: 15px; }
+    .product-card {
+      background: var(--white);
+      border-radius: 12px;
+      padding: 15px;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .product-image { width: 80px; height: 80px; border-radius: 8px; object-fit: cover; margin-right: 15px; }
+    .product-info { flex: 1; }
+    .product-name { font-size: 16px; font-weight: bold; margin: 0 0 5px; }
+    .product-price { color: var(--primary-color); font-weight: bold; margin-bottom: 8px;}
+    .add-btn {
+      background: var(--primary-color);
+      color: var(--white);
+      border: none;
+      padding: 5px 12px;
+      border-radius: 15px;
+      cursor: pointer;
+    }
+    
+    /* 底部購物車狀態列 */
+    .cart-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: var(--primary-color);
+      color: var(--white);
+      padding: 15px 20px;
+      box-sizing: border-box;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    }
+    .cart-btn {
+      background: var(--white);
+      color: var(--primary-color);
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    /* 系統載入遮罩 */
+    #loading-screen {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(255,255,255,0.9); z-index: 999;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 載入中遮罩 -->
+  <div id="loading-screen">
+    <h2>☕ 系統載入中...</h2>
+    <p id="loading-text">正在連接資料庫</p>
+  </div>
+
+  <header>
+    <div class="logo">
+      <!-- 替換為你的專屬 Logo 網址 -->
+      <img id="shop-logo" src="https://via.placeholder.com/120x40?text=LOGO" alt="Logo">
+    </div>
+    <div class="user-profile" id="user-profile">
+      <img id="profile-img" src="https://via.placeholder.com/28" alt="User">
+      <span id="profile-name">登入中</span>
+    </div>
+  </header>
+
+  <div class="container" id="menu-container">
+    <!-- 商品列表將由 JS 動態生成 -->
+  </div>
+
+  <div class="cart-bar">
+    <div id="cart-summary">購物車：0 項 | $0</div>
+    <button class="cart-btn" onclick="openCart()">查看訂單</button>
+  </div>
+
+  <!-- 載入全域設定與邏輯 -->
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
