@@ -1,5 +1,5 @@
 /**
- * Js/pos.js - 櫃台 POS 系統邏輯 (進階版面與全螢幕核對)
+ * Js/pos.js - 櫃台 POS 系統邏輯 
  */
 
 let posCart = [];
@@ -22,7 +22,7 @@ function showError(msg) {
   const el = document.getElementById("error-msg");
   el.textContent = msg;
   el.style.display = "block";
-  setTimeout(() => { el.style.display = "none"; }, 3000);
+  setTimeout(() => { el.style.display = "none"; }, 4000);
 }
 
 // --- 1. 左側：線上點餐看板邏輯 (分流至三個區塊) ---
@@ -40,30 +40,24 @@ async function fetchOnlineOrders() {
     
     if (result.success) {
       currentOnlineOrders = result.data; 
-      pendingContainer.innerHTML = "";
-      makingContainer.innerHTML = "";
-      completedContainer.innerHTML = "";
+      pendingContainer.innerHTML = ""; makingContainer.innerHTML = ""; completedContainer.innerHTML = "";
       
       let pendingCount = 0, makingCount = 0, completedCount = 0;
       
       currentOnlineOrders.forEach(order => {
         const cardHtml = createOrderCard(order);
         if (order["訂單狀態"] === "等待結帳") {
-          pendingContainer.innerHTML += cardHtml;
-          pendingCount++;
+          pendingContainer.innerHTML += cardHtml; pendingCount++;
         } else if (order["訂單狀態"] === "製作中") {
-          makingContainer.innerHTML += cardHtml;
-          makingCount++;
+          makingContainer.innerHTML += cardHtml; makingCount++;
         } else if (order["訂單狀態"] === "已完成") {
-          completedContainer.innerHTML += cardHtml;
-          completedCount++;
+          completedContainer.innerHTML += cardHtml; completedCount++;
         }
       });
 
       if(pendingCount === 0) pendingContainer.innerHTML = "<p style='color:#999; text-align:center; font-size:13px;'>無資料</p>";
       if(makingCount === 0) makingContainer.innerHTML = "<p style='color:#999; text-align:center; font-size:13px;'>無資料</p>";
       if(completedCount === 0) completedContainer.innerHTML = "<p style='color:#999; text-align:center; font-size:13px;'>無資料</p>";
-      
     }
   } catch (error) { showError("訂單更新失敗，請檢查網路"); }
 }
@@ -118,7 +112,7 @@ async function updateOrderStatus(orderId, newStatus) {
     });
     const result = await response.json();
     if (result.success) fetchOnlineOrders();
-    else showError("狀態更新失敗");
+    else showError("狀態更新失敗：" + result.message);
   } catch (error) { showError("系統連線錯誤"); }
 }
 
@@ -150,6 +144,12 @@ function loadOrderToCheckout(orderId) {
     document.getElementById('pos-takeaway').checked = true;
     document.querySelector('label[for="pos-takeaway"]').click();
   }
+  
+  // 清空並隱藏電話輸入框 (處理線上單不需要填電話)
+  const phoneInput = document.getElementById("pos-member-phone");
+  phoneInput.value = "";
+  phoneInput.style.display = "none";
+  
   updatePosCartUI();
 }
 
@@ -164,7 +164,7 @@ function addPosCart(item) {
 
 function removePosCart(id) {
   if (processingOnlineOrderId !== null) {
-    alert("線上訂單無法於此修改品項，請直接結帳或點擊「清空/換單」。");
+    alert("線上訂單無法修改品項，請直接結帳或點擊「清空/換單」。");
     return;
   }
   posCart = posCart.filter(item => item.id !== id);
@@ -175,6 +175,8 @@ function clearCart() {
   posCart = [];
   processingOnlineOrderId = null;
   document.getElementById("current-order-badge").style.display = "none";
+  document.getElementById("pos-member-phone").style.display = "block"; // 恢復顯示電話輸入框
+  document.getElementById("pos-member-phone").value = "";
   updatePosCartUI();
 }
 
@@ -206,7 +208,8 @@ function openFullCheckoutModal() {
   currentCheckoutTotal = posCart.reduce((s, i) => s + i.price, 0);
   
   const typeLabel = document.querySelector('input[name="posDineInType"]:checked').value;
-  const identity = processingOnlineOrderId ? "線上進單" : "現場客";
+  let identity = processingOnlineOrderId ? "線上單" : "現場客";
+  
   document.getElementById("full-modal-type").textContent = `${typeLabel === '內用' ? '🍽️' : '🛍️'} ${typeLabel} - ${identity}`;
   
   const itemsContainer = document.getElementById("full-modal-items");
@@ -228,7 +231,6 @@ function selectPaymentMethod(method) {
     closeModal('full-checkout-modal');
     openCashModal();
   } else {
-    // 非現金支付，直接送出
     closeModal('full-checkout-modal');
     processCheckout(method);
   }
@@ -250,27 +252,25 @@ function calculateChange() {
   const changeEl = document.getElementById("cash-modal-change");
   
   if (!received) { changeEl.textContent = "$0"; changeEl.style.color = "#388e3c"; return; }
-  
   const change = received - currentCheckoutTotal;
   if (change < 0) {
-    changeEl.textContent = "金額不足";
-    changeEl.style.color = "#d32f2f";
+    changeEl.textContent = "金額不足"; changeEl.style.color = "#d32f2f";
   } else {
-    changeEl.textContent = "$" + change;
-    changeEl.style.color = "#388e3c";
+    changeEl.textContent = "$" + change; changeEl.style.color = "#388e3c";
   }
 }
 
 function confirmCashCheckout() {
   const received = Number(document.getElementById("cash-received").value);
-  if (received < currentCheckoutTotal) { alert("支付金額不足以結帳！"); return; }
+  if (received < currentCheckoutTotal) { alert("支付金額不足！"); return; }
   closeModal('cash-modal');
   processCheckout('現金');
 }
 
-// 送單
+// 送單 (包含現場客綁定會員資料邏輯)
 async function processCheckout(payMethod) {
   if (processingOnlineOrderId !== null) {
+    // 處理左側載入的線上單：只更新狀態為已完成
     try {
       const response = await fetch(APP_CONFIG.GAS_API_URL, {
         method: "POST",
@@ -278,23 +278,48 @@ async function processCheckout(payMethod) {
       });
       const result = await response.json();
       if(result.success) {
-        alert(payMethod === '現金' ? "線上訂單結帳成功，找零已完成！" : `線上訂單已確認 ${payMethod} 付款！`);
+        alert("結帳成功！狀態已更新。");
         clearCart();
         fetchOnlineOrders(); 
-      } else { showError("結帳失敗"); }
+      } else { showError("結帳失敗：" + result.message); }
     } catch(e) { showError("系統連線錯誤"); }
+
   } else {
+    // 處理現場新建立的單：檢查是否有輸入會員電話
     const posDineIn = document.querySelector('input[name="posDineInType"]:checked').value;
+    const phoneInput = document.getElementById("pos-member-phone").value.trim();
+    
+    let targetUid = "GUEST_" + Date.now().toString().slice(-6);
+    let targetName = "現場客";
+
+    // 若有填寫電話，先呼叫 API 查詢會員資料
+    if (phoneInput) {
+      try {
+        const checkRes = await fetch(APP_CONFIG.GAS_API_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "findMemberByPhone", phone: phoneInput })
+        });
+        const checkResult = await checkRes.json();
+        if (checkResult.success) {
+          targetUid = checkResult.uid;
+          targetName = checkResult.name;
+        } else {
+          if(!confirm(`找不到號碼 ${phoneInput} 的會員。要以「現場客」身分繼續結帳嗎？`)) return;
+        }
+      } catch (error) { showError("查詢會員失敗，將以訪客身分結帳"); }
+    }
+
     const payload = {
       action: "appendOrder",
       orderData: {
         timestamp: new Date().toLocaleString("zh-TW", {timeZone: "Asia/Taipei"}),
-        uid: "GUEST_" + Date.now().toString().slice(-6),
-        name: "現場客",
+        uid: targetUid,
+        name: targetName,
         dineInType: posDineIn, 
         itemsJson: JSON.stringify(posCart.map(i => ({ name: i.name, price: i.price, qty: 1 }))),
         originalTotal: currentCheckoutTotal, discount: 0, finalTotal: currentCheckoutTotal,
-        paymentMethod: payMethod
+        paymentMethod: payMethod,
+        status: "已完成" // 現場結帳直接為已完成
       }
     };
     
@@ -302,8 +327,7 @@ async function processCheckout(payMethod) {
       const response = await fetch(APP_CONFIG.GAS_API_URL, { method: "POST", body: JSON.stringify(payload) });
       const result = await response.json();
       if(result.success) {
-        await fetch(APP_CONFIG.GAS_API_URL, { method: "POST", body: JSON.stringify({ action: "updateOrderStatus", orderId: result.orderId, status: "已完成" }) });
-        alert(payMethod === '現金' ? `現場單結帳成功 (${posDineIn})\n找零已完成。` : `現場單結帳成功 (${posDineIn} / ${payMethod})`);
+        alert(`結帳成功！已歸檔至：${targetName}`);
         clearCart();
         fetchOnlineOrders();
       }
