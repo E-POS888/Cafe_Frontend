@@ -1,5 +1,5 @@
 /**
- * Js/pos.js - 櫃台 POS 系統邏輯 
+ * Js/pos.js - 櫃台 POS 系統邏輯 (進階狀態流轉版)
  */
 
 let posCart = [];
@@ -25,7 +25,7 @@ function showError(msg) {
   setTimeout(() => { el.style.display = "none"; }, 4000);
 }
 
-// --- 1. 左側：線上點餐看板邏輯 (分流至三個區塊) ---
+// --- 1. 左側：線上點餐看板邏輯 ---
 async function fetchOnlineOrders() {
   const pendingContainer = document.getElementById("pending-container");
   const makingContainer = document.getElementById("making-container");
@@ -46,9 +46,9 @@ async function fetchOnlineOrders() {
       
       currentOnlineOrders.forEach(order => {
         const cardHtml = createOrderCard(order);
-        if (order["訂單狀態"] === "等待結帳") {
+        if (order["訂單狀態"] === "待接單" || order["訂單狀態"] === "等待結帳") {
           pendingContainer.innerHTML += cardHtml; pendingCount++;
-        } else if (order["訂單狀態"] === "製作中") {
+        } else if (order["訂單狀態"] === "製作中(未結)" || order["訂單狀態"] === "可出餐(已結)" || order["訂單狀態"] === "製作中") {
           makingContainer.innerHTML += cardHtml; makingCount++;
         } else if (order["訂單狀態"] === "已完成") {
           completedContainer.innerHTML += cardHtml; completedCount++;
@@ -62,6 +62,7 @@ async function fetchOnlineOrders() {
   } catch (error) { showError("訂單更新失敗，請檢查網路"); }
 }
 
+// 根據不同狀態生成不同的智慧分流按鈕
 function createOrderCard(order) {
   let itemsHtml = "";
   try {
@@ -74,10 +75,17 @@ function createOrderCard(order) {
   } catch (e) { itemsHtml = "無法解析"; }
 
   let actionBtnHtml = "";
-  if (order["訂單狀態"] === "等待結帳") {
-    actionBtnHtml = `<button class="action-btn" onclick="updateOrderStatus('${order["訂單編號"]}', '製作中')">接單 (開始製作)</button>`;
-  } else if (order["訂單狀態"] === "製作中") {
-    actionBtnHtml = `<button class="action-btn" style="background:#388e3c;" onclick="loadOrderToCheckout('${order["訂單編號"]}')">👉 前往結帳收銀</button>`;
+  if (order["訂單狀態"] === "待接單" || order["訂單狀態"] === "等待結帳") {
+    actionBtnHtml = `
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button class="action-btn" style="flex:1; margin-top:0; background:#e65100; font-size:12px;" onclick="updateOrderStatus('${order["訂單編號"]}', '製作中(未結)')">🧑‍🍳 先製作</button>
+        <button class="action-btn" style="flex:1; margin-top:0; background:#1976D2; font-size:12px;" onclick="loadOrderToCheckout('${order["訂單編號"]}')">💰 先結帳</button>
+      </div>
+    `;
+  } else if (order["訂單狀態"] === "製作中(未結)" || order["訂單狀態"] === "製作中") {
+    actionBtnHtml = `<button class="action-btn" style="background:#1976D2;" onclick="loadOrderToCheckout('${order["訂單編號"]}')">💰 結帳後出餐</button>`;
+  } else if (order["訂單狀態"] === "可出餐(已結)") {
+    actionBtnHtml = `<button class="action-btn" style="background:#388e3c;" onclick="updateOrderStatus('${order["訂單編號"]}', '已完成')">🛎️ 直接出餐 (完成)</button>`;
   } else if (order["訂單狀態"] === "已完成") {
     actionBtnHtml = `<div style="text-align:right; font-size:12px; color:#666;">已結帳 (${order["付款方式"]})</div>`;
   }
@@ -145,7 +153,6 @@ function loadOrderToCheckout(orderId) {
     document.querySelector('label[for="pos-takeaway"]').click();
   }
   
-  // 清空並隱藏電話輸入框 (處理線上單不需要填電話)
   const phoneInput = document.getElementById("pos-member-phone");
   phoneInput.value = "";
   phoneInput.style.display = "none";
@@ -175,7 +182,7 @@ function clearCart() {
   posCart = [];
   processingOnlineOrderId = null;
   document.getElementById("current-order-badge").style.display = "none";
-  document.getElementById("pos-member-phone").style.display = "block"; // 恢復顯示電話輸入框
+  document.getElementById("pos-member-phone").style.display = "block";
   document.getElementById("pos-member-phone").value = "";
   updatePosCartUI();
 }
@@ -199,9 +206,7 @@ function updatePosCartUI() {
 }
 
 // --- 3. 全螢幕對單與支付邏輯 ---
-function closeModal(modalId) {
-  document.getElementById(modalId).classList.remove("active");
-}
+function closeModal(modalId) { document.getElementById(modalId).classList.remove("active"); }
 
 function openFullCheckoutModal() {
   if (posCart.length === 0) { alert("結帳區目前沒有商品"); return; }
@@ -236,7 +241,6 @@ function selectPaymentMethod(method) {
   }
 }
 
-// 現金找零小彈窗
 function openCashModal() {
   document.getElementById("cash-modal-total").textContent = "$" + currentCheckoutTotal;
   document.getElementById("cash-received").value = "";
@@ -267,32 +271,34 @@ function confirmCashCheckout() {
   processCheckout('現金');
 }
 
-// 送單 (包含現場客綁定會員資料邏輯)
+// 結帳送單，並發送 payMethod 供後端更新
 async function processCheckout(payMethod) {
   if (processingOnlineOrderId !== null) {
-    // 處理左側載入的線上單：只更新狀態為已完成
+    let nextStatus = "已完成";
+    if (!confirm(`✅ 收銀結帳成功 (${payMethod})！\n\n這筆線上訂單是否要直接「完成出餐」？\n\n[確定]：出餐完畢 (直接完成)\n[取消]：僅結帳，稍後出餐 (移至可出餐)`)) {
+      nextStatus = "可出餐(已結)";
+    }
+
     try {
       const response = await fetch(APP_CONFIG.GAS_API_URL, {
         method: "POST",
-        body: JSON.stringify({ action: "updateOrderStatus", orderId: processingOnlineOrderId, status: "已完成" })
+        body: JSON.stringify({ action: "updateOrderStatus", orderId: processingOnlineOrderId, status: nextStatus, payMethod: payMethod })
       });
       const result = await response.json();
       if(result.success) {
-        alert("結帳成功！狀態已更新。");
+        alert(`狀態已更新為：${nextStatus}`);
         clearCart();
         fetchOnlineOrders(); 
-      } else { showError("結帳失敗：" + result.message); }
+      } else { showError("結帳狀態更新失敗：" + result.message); }
     } catch(e) { showError("系統連線錯誤"); }
 
   } else {
-    // 處理現場新建立的單：檢查是否有輸入會員電話
     const posDineIn = document.querySelector('input[name="posDineInType"]:checked').value;
     const phoneInput = document.getElementById("pos-member-phone").value.trim();
     
     let targetUid = "GUEST_" + Date.now().toString().slice(-6);
     let targetName = "現場客";
 
-    // 若有填寫電話，先呼叫 API 查詢會員資料
     if (phoneInput) {
       try {
         const checkRes = await fetch(APP_CONFIG.GAS_API_URL, {
@@ -319,7 +325,7 @@ async function processCheckout(payMethod) {
         itemsJson: JSON.stringify(posCart.map(i => ({ name: i.name, price: i.price, qty: 1 }))),
         originalTotal: currentCheckoutTotal, discount: 0, finalTotal: currentCheckoutTotal,
         paymentMethod: payMethod,
-        status: "已完成" // 現場結帳直接為已完成
+        status: "已完成"
       }
     };
     
