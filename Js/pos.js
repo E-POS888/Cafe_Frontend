@@ -1,16 +1,16 @@
 /**
- * Js/pos.js - 櫃台 POS 系統邏輯 (加入現金找零功能)
+ * Js/pos.js - 櫃台 POS 系統邏輯 (進階版面與全螢幕核對)
  */
 
 let posCart = [];
 let menuData = [];
 let processingOnlineOrderId = null; 
 let currentOnlineOrders = [];
-let currentCheckoutTotal = 0; // 記錄當前結帳總金額供找零計算使用
+let currentCheckoutTotal = 0; 
 
 document.addEventListener("DOMContentLoaded", () => {
   if (typeof APP_CONFIG === 'undefined') {
-    document.getElementById("error-msg").textContent = "❌ 設定檔未載入";
+    showError("❌ 設定檔未載入");
     return;
   }
   fetchMenu();
@@ -18,9 +18,19 @@ document.addEventListener("DOMContentLoaded", () => {
   setInterval(fetchOnlineOrders, 10000); 
 });
 
-// --- 1. 左側：線上點餐看板邏輯 ---
+function showError(msg) {
+  const el = document.getElementById("error-msg");
+  el.textContent = msg;
+  el.style.display = "block";
+  setTimeout(() => { el.style.display = "none"; }, 3000);
+}
+
+// --- 1. 左側：線上點餐看板邏輯 (分流至三個區塊) ---
 async function fetchOnlineOrders() {
-  const container = document.getElementById("pending-orders-container");
+  const pendingContainer = document.getElementById("pending-container");
+  const makingContainer = document.getElementById("making-container");
+  const completedContainer = document.getElementById("completed-container");
+  
   try {
     const response = await fetch(APP_CONFIG.GAS_API_URL, {
       method: "POST",
@@ -30,57 +40,74 @@ async function fetchOnlineOrders() {
     
     if (result.success) {
       currentOnlineOrders = result.data; 
-      container.innerHTML = "";
-      if (currentOnlineOrders.length === 0) {
-        container.innerHTML = "<p style='color:#666; text-align:center;'>目前無待處理訂單</p>";
-        return;
-      }
+      pendingContainer.innerHTML = "";
+      makingContainer.innerHTML = "";
+      completedContainer.innerHTML = "";
+      
+      let pendingCount = 0, makingCount = 0, completedCount = 0;
       
       currentOnlineOrders.forEach(order => {
-        let itemsHtml = "";
-        try {
-          const items = JSON.parse(order["訂單內容(JSON)"]);
-          items.forEach(item => {
-            let spec = [item.size, item.temp, item.sugar, item.ecoCup === "自備環保杯" ? "(自備)" : ""].filter(Boolean).join("/");
-            itemsHtml += `<div style="font-size:13px;">- ${item.name} x1 [${spec}]</div>`;
-            if (item.note) itemsHtml += `<div style="font-size:12px; color:#d32f2f; margin-left:10px;">*備註: ${item.note}</div>`;
-          });
-        } catch (e) { itemsHtml = "無法解析商品內容"; }
-
-        let actionBtnHtml = "";
+        const cardHtml = createOrderCard(order);
         if (order["訂單狀態"] === "等待結帳") {
-          actionBtnHtml = `<button class="action-btn" onclick="updateOrderStatus('${order["訂單編號"]}', '製作中')">接單 (開始製作)</button>`;
+          pendingContainer.innerHTML += cardHtml;
+          pendingCount++;
         } else if (order["訂單狀態"] === "製作中") {
-          actionBtnHtml = `<button class="action-btn" style="background:#388e3c;" onclick="loadOrderToCheckout('${order["訂單編號"]}')">👉 前往結帳收銀</button>`;
+          makingContainer.innerHTML += cardHtml;
+          makingCount++;
+        } else if (order["訂單狀態"] === "已完成") {
+          completedContainer.innerHTML += cardHtml;
+          completedCount++;
         }
-
-        const dineInBadge = order["用餐方式"] === '內用' 
-          ? `<span style="padding:4px 8px; border-radius:6px; background:#e65100; color:white; font-size:12px; font-weight:bold;">🍽️ 內用</span>` 
-          : `<span style="padding:4px 8px; border-radius:6px; background:#8D6E63; color:white; font-size:12px; font-weight:bold;">🛍️ 外帶</span>`;
-
-        const card = document.createElement("div");
-        card.className = "order-card";
-        card.innerHTML = `
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
-            <div>
-              <h4 style="margin-bottom:4px; font-size:15px;">${order["會員姓名"]} <span style="font-size:11px; color:#666;">(${order["訂單編號"]})</span></h4>
-              ${dineInBadge}
-            </div>
-            <span style="font-size:12px; font-weight:bold; color: ${order["訂單狀態"] === '製作中' ? '#e65100' : '#d32f2f'};">${order["訂單狀態"]}</span>
-          </div>
-          <div style="margin: 10px 0; border-left: 2px solid #ccc; padding-left: 8px;">${itemsHtml}</div>
-          <div style="display:flex; justify-content:space-between; align-items:center; font-weight:bold;">
-            <span style="font-size:13px; color:#666;">${order["付款方式"]}</span>
-            <span style="color:#d32f2f; font-size:18px;">$${order["實收金額"]}</span>
-          </div>
-          ${actionBtnHtml}
-        `;
-        container.appendChild(card);
       });
+
+      if(pendingCount === 0) pendingContainer.innerHTML = "<p style='color:#999; text-align:center; font-size:13px;'>無資料</p>";
+      if(makingCount === 0) makingContainer.innerHTML = "<p style='color:#999; text-align:center; font-size:13px;'>無資料</p>";
+      if(completedCount === 0) completedContainer.innerHTML = "<p style='color:#999; text-align:center; font-size:13px;'>無資料</p>";
+      
     }
-  } catch (error) {
-    container.innerHTML = "<p style='color:red;'>連線失敗</p>";
+  } catch (error) { showError("訂單更新失敗，請檢查網路"); }
+}
+
+function createOrderCard(order) {
+  let itemsHtml = "";
+  try {
+    const items = JSON.parse(order["訂單內容(JSON)"]);
+    items.forEach(item => {
+      let spec = [item.size, item.temp, item.sugar, item.ecoCup === "自備環保杯" ? "(自備)" : ""].filter(Boolean).join("/");
+      itemsHtml += `<div style="font-size:12px; margin-bottom:3px;">- ${item.name} x1 [${spec}]</div>`;
+      if (item.note) itemsHtml += `<div style="font-size:11px; color:#d32f2f; margin-left:8px;">*${item.note}</div>`;
+    });
+  } catch (e) { itemsHtml = "無法解析"; }
+
+  let actionBtnHtml = "";
+  if (order["訂單狀態"] === "等待結帳") {
+    actionBtnHtml = `<button class="action-btn" onclick="updateOrderStatus('${order["訂單編號"]}', '製作中')">接單 (開始製作)</button>`;
+  } else if (order["訂單狀態"] === "製作中") {
+    actionBtnHtml = `<button class="action-btn" style="background:#388e3c;" onclick="loadOrderToCheckout('${order["訂單編號"]}')">👉 前往結帳收銀</button>`;
+  } else if (order["訂單狀態"] === "已完成") {
+    actionBtnHtml = `<div style="text-align:right; font-size:12px; color:#666;">已結帳 (${order["付款方式"]})</div>`;
   }
+
+  const dineInBadge = order["用餐方式"] === '內用' 
+    ? `<span style="padding:3px 6px; border-radius:4px; background:#e65100; color:white; font-size:11px; font-weight:bold;">🍽️ 內用</span>` 
+    : `<span style="padding:3px 6px; border-radius:4px; background:#8D6E63; color:white; font-size:11px; font-weight:bold;">🛍️ 外帶</span>`;
+
+  return `
+    <div class="order-card" style="${order["訂單狀態"]==='已完成' ? 'opacity:0.7; border-left-color:#9e9e9e;' : ''}">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+        <div>
+          <div style="font-size:14px; font-weight:bold; margin-bottom:2px;">${order["會員姓名"]}</div>
+          <div style="font-size:10px; color:#666; margin-bottom:4px;">${order["訂單編號"]}</div>
+          ${dineInBadge}
+        </div>
+      </div>
+      <div style="margin: 8px 0; border-left: 2px solid #eee; padding-left: 8px;">${itemsHtml}</div>
+      <div style="display:flex; justify-content:space-between; align-items:center; font-weight:bold; margin-top:5px;">
+        <span style="color:#d32f2f; font-size:16px;">$${order["實收金額"]}</span>
+      </div>
+      ${actionBtnHtml}
+    </div>
+  `;
 }
 
 async function updateOrderStatus(orderId, newStatus) {
@@ -91,8 +118,8 @@ async function updateOrderStatus(orderId, newStatus) {
     });
     const result = await response.json();
     if (result.success) fetchOnlineOrders();
-    else alert("狀態更新失敗：" + result.message);
-  } catch (error) { alert("系統連線錯誤"); }
+    else showError("狀態更新失敗");
+  } catch (error) { showError("系統連線錯誤"); }
 }
 
 // --- 2. 結帳區與右側聯動邏輯 ---
@@ -118,21 +145,18 @@ function loadOrderToCheckout(orderId) {
 
   if (order["用餐方式"] === "內用") {
     document.getElementById('pos-dinein').checked = true;
-    document.querySelectorAll('label[for^=pos-]').forEach(l=>l.classList.remove('active'));
-    document.querySelector('label[for="pos-dinein"]').classList.add('active');
+    document.querySelector('label[for="pos-dinein"]').click();
   } else {
     document.getElementById('pos-takeaway').checked = true;
-    document.querySelectorAll('label[for^=pos-]').forEach(l=>l.classList.remove('active'));
-    document.querySelector('label[for="pos-takeaway"]').classList.add('active');
+    document.querySelector('label[for="pos-takeaway"]').click();
   }
   updatePosCartUI();
 }
 
 function addPosCart(item) {
   if (processingOnlineOrderId !== null) {
-    if(confirm("正在處理線上訂單，確定要清空並建立現場新單嗎？")) {
-      clearCart();
-    } else return;
+    if(confirm("正在處理線上訂單，確定要清空並建立現場新單嗎？")) clearCart();
+    else return;
   }
   posCart.push({ id: Date.now().toString(), productId: item["商品編號"], name: item["商品名稱"], price: Number(item["預設價格"]) });
   updatePosCartUI();
@@ -163,9 +187,7 @@ function updatePosCartUI() {
     total += item.price;
     list.innerHTML += `
       <div class="cart-item">
-        <div style="flex:1;">
-          <div style="font-weight:bold; font-size:14px; line-height:1.4;">${item.name}</div>
-        </div>
+        <div style="flex:1;"><div style="font-weight:bold; font-size:14px; line-height:1.4;">${item.name}</div></div>
         <div style="font-weight:bold; margin: 0 10px; color:#d32f2f;">$${item.price}</div>
         <button style="color:red; background:none; border:none; cursor:pointer;" onclick="removePosCart('${item.id}')">✕</button>
       </div>
@@ -174,36 +196,60 @@ function updatePosCartUI() {
   document.getElementById("pos-total").textContent = `Total: $${total}`;
 }
 
-// --- 3. 現金找零彈窗邏輯 ---
-function openCashModal() {
+// --- 3. 全螢幕對單與支付邏輯 ---
+function closeModal(modalId) {
+  document.getElementById(modalId).classList.remove("active");
+}
+
+function openFullCheckoutModal() {
   if (posCart.length === 0) { alert("結帳區目前沒有商品"); return; }
   currentCheckoutTotal = posCart.reduce((s, i) => s + i.price, 0);
   
+  const typeLabel = document.querySelector('input[name="posDineInType"]:checked').value;
+  const identity = processingOnlineOrderId ? "線上進單" : "現場客";
+  document.getElementById("full-modal-type").textContent = `${typeLabel === '內用' ? '🍽️' : '🛍️'} ${typeLabel} - ${identity}`;
+  
+  const itemsContainer = document.getElementById("full-modal-items");
+  itemsContainer.innerHTML = "";
+  posCart.forEach(item => {
+    itemsContainer.innerHTML += `
+      <div style="display:flex; justify-content:space-between; margin-bottom:15px; border-bottom:1px dashed #ccc; padding-bottom:10px;">
+        <div style="flex:1;">${item.name}</div>
+        <div style="font-weight:bold;">$${item.price}</div>
+      </div>
+    `;
+  });
+  document.getElementById("full-modal-total").textContent = `總計: $${currentCheckoutTotal}`;
+  document.getElementById("full-checkout-modal").classList.add("active");
+}
+
+function selectPaymentMethod(method) {
+  if (method === '現金') {
+    closeModal('full-checkout-modal');
+    openCashModal();
+  } else {
+    // 非現金支付，直接送出
+    closeModal('full-checkout-modal');
+    processCheckout(method);
+  }
+}
+
+// 現金找零小彈窗
+function openCashModal() {
   document.getElementById("cash-modal-total").textContent = "$" + currentCheckoutTotal;
   document.getElementById("cash-received").value = "";
   document.getElementById("cash-modal-change").textContent = "$0";
   document.getElementById("cash-modal-change").style.color = "#388e3c";
   
   document.getElementById("cash-modal").classList.add("active");
-  // 自動 Focus 到輸入框方便鍵盤輸入
   setTimeout(() => document.getElementById("cash-received").focus(), 100);
-}
-
-function closeCashModal(force) {
-  if (force === true || (force && force.target.id === 'cash-modal')) {
-    document.getElementById("cash-modal").classList.remove("active");
-  }
 }
 
 function calculateChange() {
   const received = Number(document.getElementById("cash-received").value);
   const changeEl = document.getElementById("cash-modal-change");
   
-  if (!received) {
-    changeEl.textContent = "$0";
-    changeEl.style.color = "#388e3c";
-    return;
-  }
+  if (!received) { changeEl.textContent = "$0"; changeEl.style.color = "#388e3c"; return; }
   
   const change = received - currentCheckoutTotal;
   if (change < 0) {
@@ -217,18 +263,13 @@ function calculateChange() {
 
 function confirmCashCheckout() {
   const received = Number(document.getElementById("cash-received").value);
-  if (received < currentCheckoutTotal) {
-    alert("支付金額不足以結帳！");
-    return;
-  }
-  closeCashModal(true);
+  if (received < currentCheckoutTotal) { alert("支付金額不足以結帳！"); return; }
+  closeModal('cash-modal');
   processCheckout('現金');
 }
 
-// --- 4. 結帳送單核心 ---
+// 送單
 async function processCheckout(payMethod) {
-  if (posCart.length === 0) { alert("結帳區目前沒有商品"); return; }
-  
   if (processingOnlineOrderId !== null) {
     try {
       const response = await fetch(APP_CONFIG.GAS_API_URL, {
@@ -237,20 +278,13 @@ async function processCheckout(payMethod) {
       });
       const result = await response.json();
       if(result.success) {
-        // 如果是 LINE Pay，顯示不同提示字
-        const msg = payMethod === '現金' ? "線上訂單結帳成功，找零已完成！" : "線上訂單已確認 LINE Pay 付款！";
-        alert(msg);
+        alert(payMethod === '現金' ? "線上訂單結帳成功，找零已完成！" : `線上訂單已確認 ${payMethod} 付款！`);
         clearCart();
         fetchOnlineOrders(); 
-      } else { alert("結帳失敗：" + result.message); }
-    } catch(e) { alert("系統連線錯誤"); }
-
+      } else { showError("結帳失敗"); }
+    } catch(e) { showError("系統連線錯誤"); }
   } else {
-    let posDineIn = "外帶";
-    const dineInEl = document.querySelector('input[name="posDineInType"]:checked');
-    if(dineInEl) posDineIn = dineInEl.value;
-
-    const total = posCart.reduce((s, i) => s + i.price, 0);
+    const posDineIn = document.querySelector('input[name="posDineInType"]:checked').value;
     const payload = {
       action: "appendOrder",
       orderData: {
@@ -259,9 +293,7 @@ async function processCheckout(payMethod) {
         name: "現場客",
         dineInType: posDineIn, 
         itemsJson: JSON.stringify(posCart.map(i => ({ name: i.name, price: i.price, qty: 1 }))),
-        originalTotal: total,
-        discount: 0,
-        finalTotal: total,
+        originalTotal: currentCheckoutTotal, discount: 0, finalTotal: currentCheckoutTotal,
         paymentMethod: payMethod
       }
     };
@@ -271,21 +303,18 @@ async function processCheckout(payMethod) {
       const result = await response.json();
       if(result.success) {
         await fetch(APP_CONFIG.GAS_API_URL, { method: "POST", body: JSON.stringify({ action: "updateOrderStatus", orderId: result.orderId, status: "已完成" }) });
-        const msg = payMethod === '現金' ? `現場單結帳成功 (${posDineIn})\n找零已完成。` : `現場單結帳成功 (${posDineIn} / LINE Pay)`;
-        alert(msg);
+        alert(payMethod === '現金' ? `現場單結帳成功 (${posDineIn})\n找零已完成。` : `現場單結帳成功 (${posDineIn} / ${payMethod})`);
         clearCart();
+        fetchOnlineOrders();
       }
-    } catch (error) { alert("結帳發生錯誤"); }
+    } catch (error) { showError("結帳發生錯誤"); }
   }
 }
 
-// --- 5. 初始化右側菜單 ---
+// --- 初始化右側菜單 ---
 async function fetchMenu() {
   try {
-    const response = await fetch(APP_CONFIG.GAS_API_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "getMenu" })
-    });
+    const response = await fetch(APP_CONFIG.GAS_API_URL, { method: "POST", body: JSON.stringify({ action: "getMenu" }) });
     const result = await response.json();
     if (result.success) {
       menuData = result.data;
@@ -317,14 +346,10 @@ function renderPosGrid(category) {
   const gridContainer = document.getElementById("pos-grid");
   gridContainer.innerHTML = "";
   const items = menuData.filter(item => item["大類別"] === category);
-  
   items.forEach(item => {
     const div = document.createElement("div");
     div.className = "pos-item";
-    div.innerHTML = `
-      <div style="font-weight:bold; margin-bottom:8px; font-size:14px;">${item["商品名稱"]}</div>
-      <div style="color:var(--accent-color); font-weight:bold;">$${item["預設價格"]}</div>
-    `;
+    div.innerHTML = `<div style="font-weight:bold; margin-bottom:8px; font-size:13px;">${item["商品名稱"]}</div><div style="color:var(--accent-color); font-weight:bold;">$${item["預設價格"]}</div>`;
     div.onclick = () => addPosCart(item);
     gridContainer.appendChild(div);
   });
