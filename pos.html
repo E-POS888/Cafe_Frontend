@@ -3,105 +3,157 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Café Connect - POS 櫃台系統</title>
+  <title>Café Connect - POS 專業收銀</title>
   <style>
     :root { --primary-color: #8D6E63; --secondary-color: #D7CCC8; --bg-color: #F5F5DC; --text-main: #3E2723; --white: #FFFFFF; --border-radius: 8px; }
     body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; display: flex; height: 100vh; overflow: hidden; }
     
-    .online-orders { width: 30%; background: var(--secondary-color); padding: 20px; overflow-y: auto; border-right: 1px solid rgba(0,0,0,0.1); }
-    .order-card { background: var(--white); padding: 15px; border-radius: var(--border-radius); margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-    .action-btn { background: var(--primary-color); color: var(--white); border: none; padding: 8px 12px; border-radius: var(--border-radius); cursor: pointer; width: 100%; margin-top: 10px; font-weight:bold; }
+    /* 左側動線區 (30%)：分為三個直列區塊 */
+    .left-panel { width: 30%; background: var(--secondary-color); padding: 15px; display: flex; flex-direction: column; border-right: 1px solid rgba(0,0,0,0.1); box-sizing: border-box; gap: 10px; }
+    .status-section { flex: 1; display: flex; flex-direction: column; background: rgba(255,255,255,0.4); border-radius: var(--border-radius); padding: 10px; overflow: hidden; }
+    .status-section h4 { margin: 0 0 10px 0; font-size: 16px; color: var(--text-main); padding-bottom: 5px; border-bottom: 2px solid var(--primary-color); }
+    .order-list-container { flex: 1; overflow-y: auto; padding-right: 5px; }
     
-    .menu-area { width: 45%; padding: 20px; display: flex; flex-direction: column; }
-    .category-tabs { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; }
-    .tab-btn { padding: 10px 20px; background: var(--white); border: 1px solid var(--primary-color); color: var(--primary-color); border-radius: 20px; cursor: pointer; white-space: nowrap; font-weight:bold; }
+    .order-card { background: var(--white); padding: 12px; border-radius: var(--border-radius); margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 4px solid var(--primary-color); }
+    .action-btn { background: var(--primary-color); color: var(--white); border: none; padding: 6px 12px; border-radius: var(--border-radius); cursor: pointer; width: 100%; margin-top: 8px; font-weight:bold; font-size: 13px; }
+    
+    /* 中間點單區 (30%)：縮小比例 */
+    .menu-panel { width: 30%; padding: 15px; display: flex; flex-direction: column; box-sizing: border-box; }
+    .category-tabs { display: flex; gap: 8px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
+    .tab-btn { padding: 8px 12px; background: var(--white); border: 1px solid var(--primary-color); color: var(--primary-color); border-radius: 20px; cursor: pointer; white-space: nowrap; font-weight:bold; font-size: 13px; }
     .tab-btn.active { background: var(--primary-color); color: var(--white); }
-    .pos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; overflow-y: auto; }
-    .pos-item { background: var(--white); padding: 15px; border-radius: var(--border-radius); text-align: center; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    .pos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; overflow-y: auto; align-content: flex-start; }
+    .pos-item { background: var(--white); padding: 12px 8px; border-radius: var(--border-radius); text-align: center; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
     .pos-item:hover { border: 2px solid var(--primary-color); }
     
-    .checkout-area { width: 25%; background: var(--white); padding: 20px; display: flex; flex-direction: column; border-left: 1px solid rgba(0,0,0,0.1); }
-    .cart-list { flex: 1; overflow-y: auto; margin-bottom: 20px; }
-    .cart-item { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed #ccc; padding-bottom: 10px; font-size:14px;}
-    .total-display { font-size: 24px; font-weight: bold; text-align: right; margin-bottom: 20px; color: var(--primary-color); }
-    .pay-btn-group { display: flex; flex-direction: column; gap: 10px; }
-    .pay-btn { padding: 15px; border: none; border-radius: var(--border-radius); font-size: 16px; font-weight: bold; cursor: pointer; }
-    .pay-cash { background: #4CAF50; color: white; }
-    .pay-line { background: #00C300; color: white; }
-    #error-msg { color: red; font-weight: bold; padding: 10px; }
+    /* 右側結帳區 (40%)：放大便於操作與檢視 */
+    .checkout-panel { width: 40%; background: var(--white); padding: 20px; display: flex; flex-direction: column; border-left: 1px solid rgba(0,0,0,0.1); box-sizing: border-box; }
+    .cart-list { flex: 1; overflow-y: auto; margin-bottom: 20px; background: #f9f9f9; border-radius: var(--border-radius); padding: 10px; }
+    .cart-item { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed #ccc; padding-bottom: 10px; font-size:15px;}
+    .total-display { font-size: 32px; font-weight: bold; text-align: right; margin-bottom: 15px; color: #d32f2f; }
+    .pay-btn-group { display: flex; gap: 10px; }
+    .checkout-btn { flex: 2; padding: 20px; background: #4CAF50; color: white; border: none; border-radius: var(--border-radius); font-size: 20px; font-weight: bold; cursor: pointer; }
+    .clear-btn { flex: 1; padding: 20px; background: #9e9e9e; color: white; border: none; border-radius: var(--border-radius); font-size: 16px; font-weight: bold; cursor: pointer; }
     
-    .current-order-badge { background: #e65100; color: white; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; text-align: center; margin-bottom: 10px; display: none; }
+    .current-order-badge { background: #e65100; color: white; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: bold; text-align: center; margin-bottom: 15px; display: none; }
 
     /* 彈窗樣式 (Modal) */
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; display: flex; align-items: center; justify-content: center; }
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; display: flex; align-items: center; justify-content: center; }
     .modal-overlay.active { opacity: 1; pointer-events: auto; }
-    .modal-content { background: var(--bg-color); width: 90%; max-width: 400px; border-radius: 16px; padding: 30px 24px; box-sizing: border-box; position: relative; transform: scale(0.95); transition: transform 0.3s; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-    .modal-overlay.active .modal-content { transform: scale(1); }
-    .btn-success { background: #388e3c; color: white; }
-    .btn-cancel { background: #9e9e9e; color: white; }
+    
+    /* 全螢幕對單彈窗 */
+    .full-modal-content { background: var(--white); width: 90%; max-width: 1000px; height: 90vh; border-radius: 16px; padding: 30px; box-sizing: border-box; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+    .full-modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid var(--primary-color); padding-bottom: 15px; margin-bottom: 20px; }
+    .full-modal-body { flex: 1; display: flex; gap: 30px; overflow: hidden; }
+    .full-order-details { flex: 6; overflow-y: auto; font-size: 20px; line-height: 1.6; background: #f9f9f9; padding: 20px; border-radius: 12px; }
+    .full-payment-area { flex: 4; display: flex; flex-direction: column; justify-content: space-between; }
+    
+    .pay-option-btn { width: 100%; padding: 20px; margin-bottom: 15px; border: none; border-radius: 12px; font-size: 22px; font-weight: bold; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .bg-cash { background: #4CAF50; }
+    .bg-line { background: #00C300; }
+    .bg-jko { background: #E53935; }
+    .bg-bank { background: #1976D2; }
+    
+    /* 找零小彈窗 */
+    .small-modal-content { background: var(--bg-color); width: 400px; border-radius: 16px; padding: 30px; text-align: center; }
+    #error-msg { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(255,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px; z-index: 3000; display: none; }
   </style>
 </head>
 <body>
 
-  <div class="online-orders">
-    <h3>線上點餐看板</h3>
-    <div id="error-msg"></div>
-    <div id="pending-orders-container"></div>
+  <div id="error-msg"></div>
+
+  <!-- 左側 30%：狀態動線區 -->
+  <div class="left-panel">
+    <div class="status-section">
+      <h4>🆕 待接單 (線上進單)</h4>
+      <div id="pending-container" class="order-list-container"></div>
+    </div>
+    <div class="status-section">
+      <h4>🧑‍🍳 製作中</h4>
+      <div id="making-container" class="order-list-container"></div>
+    </div>
+    <div class="status-section" style="flex: 0.8; background: rgba(0,0,0,0.05);">
+      <h4>✅ 近期完成</h4>
+      <div id="completed-container" class="order-list-container"></div>
+    </div>
   </div>
 
-  <div class="menu-area">
+  <!-- 中間 30%：點單區 -->
+  <div class="menu-panel">
     <div class="category-tabs" id="category-tabs"></div>
     <div class="pos-grid" id="pos-grid"></div>
   </div>
 
-  <div class="checkout-area">
-    <h3 style="margin-top:0;">結帳收銀區</h3>
+  <!-- 右側 40%：結帳區 -->
+  <div class="checkout-panel">
+    <h2 style="margin:0 0 15px 0;">結帳收銀</h2>
+    
     <div id="current-order-badge" class="current-order-badge">處理中：ORD-XXXXX</div>
-    <div class="cart-list" id="pos-cart-list"></div>
-    <div class="total-display" id="pos-total">Total: $0</div>
     
     <div class="category-tabs" style="margin-bottom: 15px;">
       <input type="radio" name="posDineInType" id="pos-takeaway" value="外帶" style="display:none;" checked>
-      <label for="pos-takeaway" class="tab-btn active" onclick="document.getElementById('pos-takeaway').checked=true; document.querySelectorAll('label[for^=pos-]').forEach(l=>l.classList.remove('active')); this.classList.add('active');" style="flex:1; text-align:center;">🛍️ 外帶</label>
+      <label for="pos-takeaway" class="tab-btn active" onclick="document.getElementById('pos-takeaway').checked=true; document.querySelectorAll('label[for^=pos-]').forEach(l=>l.classList.remove('active')); this.classList.add('active');" style="flex:1; text-align:center; font-size:16px; padding:12px;">🛍️ 外帶</label>
       
       <input type="radio" name="posDineInType" id="pos-dinein" value="內用" style="display:none;">
-      <label for="pos-dinein" class="tab-btn" onclick="document.getElementById('pos-dinein').checked=true; document.querySelectorAll('label[for^=pos-]').forEach(l=>l.classList.remove('active')); this.classList.add('active');" style="flex:1; text-align:center;">🍽️ 內用</label>
+      <label for="pos-dinein" class="tab-btn" onclick="document.getElementById('pos-dinein').checked=true; document.querySelectorAll('label[for^=pos-]').forEach(l=>l.classList.remove('active')); this.classList.add('active');" style="flex:1; text-align:center; font-size:16px; padding:12px;">🍽️ 內用</label>
     </div>
 
+    <div class="cart-list" id="pos-cart-list"></div>
+    <div class="total-display" id="pos-total">Total: $0</div>
+    
     <div class="pay-btn-group">
-      <!-- 點擊現金結帳改為開啟彈窗 -->
-      <button class="pay-btn pay-cash" onclick="openCashModal()">收銀結帳 (現金)</button>
-      <button class="pay-btn pay-line" onclick="processCheckout('LINE Pay')">收銀結帳 (LINE Pay)</button>
-      <button class="action-btn" style="background:#555;" onclick="clearCart()">清空 / 換單</button>
+      <button class="clear-btn" onclick="clearCart()">清空 / 換單</button>
+      <button class="checkout-btn" onclick="openFullCheckoutModal()">確認明細與結帳 ➜</button>
     </div>
   </div>
 
-  <!-- 現金結帳與找零計算彈窗 -->
-  <div class="modal-overlay" id="cash-modal" onclick="closeCashModal(event)">
-    <div class="modal-content" onclick="event.stopPropagation()" style="text-align: center;">
-      <h2 style="margin-top: 0; color: var(--text-main);">現金結帳</h2>
-      
-      <div style="font-size: 24px; font-weight: bold; margin-bottom: 20px;">
-        應收：<span id="cash-modal-total" style="color: #d32f2f;">$0</span>
+  <!-- 幾乎全螢幕的結帳核對彈窗 -->
+  <div class="modal-overlay" id="full-checkout-modal">
+    <div class="full-modal-content">
+      <div class="full-modal-header">
+        <h2 style="margin:0; font-size:28px;">🧾 訂單明細核對</h2>
+        <button style="background:none; border:none; font-size:30px; cursor:pointer;" onclick="closeModal('full-checkout-modal')">✕</button>
       </div>
-      
+      <div class="full-modal-body">
+        <!-- 左側明細 -->
+        <div class="full-order-details">
+          <div style="font-weight:bold; color:var(--primary-color); margin-bottom:15px; font-size:24px;" id="full-modal-type">🛍️ 外帶 - 現場客</div>
+          <div id="full-modal-items"></div>
+          <div style="border-top:2px solid #ccc; margin-top:20px; padding-top:20px; text-align:right; font-size:40px; font-weight:bold; color:#d32f2f;" id="full-modal-total">總計: $0</div>
+        </div>
+        <!-- 右側支付方式 -->
+        <div class="full-payment-area">
+          <h3 style="margin-top:0;">請選擇收款方式</h3>
+          <div>
+            <button class="pay-option-btn bg-cash" onclick="selectPaymentMethod('現金')">💵 現金結帳</button>
+            <button class="pay-option-btn bg-line" onclick="selectPaymentMethod('LINE Pay')">📱 LINE Pay</button>
+            <button class="pay-option-btn bg-jko" onclick="selectPaymentMethod('街口支付')">📱 街口支付</button>
+            <button class="pay-option-btn bg-bank" onclick="selectPaymentMethod('匯款/轉帳')">🏦 匯款 / 轉帳</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 現金找零小彈窗 -->
+  <div class="modal-overlay" id="cash-modal">
+    <div class="small-modal-content">
+      <h2 style="margin-top: 0;">現金收銀</h2>
+      <div style="font-size: 24px; font-weight: bold; margin-bottom: 20px;">應收：<span id="cash-modal-total" style="color: #d32f2f;">$0</span></div>
       <div style="text-align: left; margin-bottom: 20px;">
-        <label style="font-weight: bold; display: block; margin-bottom: 8px; color: var(--text-main);">客付金額 (實收)：</label>
+        <label style="font-weight: bold; display: block; margin-bottom: 8px;">客付金額 (實收)：</label>
         <input type="number" id="cash-received" style="width: 100%; padding: 15px; font-size: 24px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; text-align: right;" placeholder="輸入金額" oninput="calculateChange()">
       </div>
-      
-      <div style="font-size: 24px; font-weight: bold; margin-bottom: 30px;">
-        找零：<span id="cash-modal-change" style="color: #388e3c;">$0</span>
-      </div>
-      
+      <div style="font-size: 24px; font-weight: bold; margin-bottom: 30px;">找零：<span id="cash-modal-change" style="color: #388e3c;">$0</span></div>
       <div style="display: flex; gap: 15px;">
-        <button class="pay-btn btn-cancel" style="flex: 1;" onclick="closeCashModal(true)">取消</button>
-        <button class="pay-btn btn-success" style="flex: 1;" onclick="confirmCashCheckout()">確認結帳</button>
+        <button style="flex: 1; padding:15px; background:#9e9e9e; color:white; border:none; border-radius:8px; font-size:18px;" onclick="closeModal('cash-modal')">取消</button>
+        <button style="flex: 1; padding:15px; background:#388e3c; color:white; border:none; border-radius:8px; font-size:18px; font-weight:bold;" onclick="confirmCashCheckout()">確認完成</button>
       </div>
     </div>
   </div>
 
-  <script src="Js/config.js" onerror="document.getElementById('error-msg').innerHTML='❌ 找不到 Js/config.js'"></script>
-  <script src="Js/pos.js" onerror="document.getElementById('error-msg').innerHTML='❌ 找不到 Js/pos.js'"></script>
+  <script src="Js/config.js"></script>
+  <script src="Js/pos.js"></script>
 </body>
 </html>
