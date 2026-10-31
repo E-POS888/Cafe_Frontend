@@ -1,171 +1,134 @@
-/**
- * Js/admin.js - 主管與財務後台邏輯
- */
-
-const ADMIN_SECRET = "admin123";
-let allMembers = []; // 儲存所有會員資料以供搜尋過濾
-
-function verifyAdmin() {
-  const inputPwd = document.getElementById("admin-password").value;
-  if (inputPwd === ADMIN_SECRET) {
-    document.getElementById("auth-overlay").style.display = "none";
-    loadProductsForAdmin();
-    loadMembersForAdmin(); // 登入後同時載入會員資料
-  } else {
-    alert("密碼錯誤，請重新輸入！");
-    document.getElementById("admin-password").value = "";
-  }
-}
-
-function switchTab(sectionId, btnElement) {
-  document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-  document.getElementById(sectionId).classList.add('active');
-  btnElement.classList.add('active');
-}
-
-// 載入商品列表
-async function loadProductsForAdmin() {
-  const tbody = document.getElementById("admin-product-list");
-  tbody.innerHTML = '<tr><td colspan="6">正在連線資料庫...</td></tr>';
-  
-  try {
-    const response = await fetch(APP_CONFIG.GAS_API_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "getMenu" })
-    });
-    const result = await response.json();
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Café Connect - 主管與財務後台</title>
+  <style>
+    :root { --primary-color: #8D6E63; --secondary-color: #D7CCC8; --bg-color: #FAFAFA; --text-main: #3E2723; --white: #FFFFFF; --danger: #d32f2f; --success: #388e3c; }
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+    .sidebar { width: 250px; background-color: var(--primary-color); color: var(--white); display: flex; flex-direction: column; }
+    .sidebar-header { padding: 20px; font-size: 20px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.2); text-align: center; }
+    .nav-btn { padding: 15px 20px; background: none; border: none; color: var(--white); text-align: left; font-size: 16px; cursor: pointer; transition: 0.3s; }
+    .nav-btn:hover, .nav-btn.active { background-color: rgba(255,255,255,0.2); font-weight: bold; }
+    .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+    .section { display: none; background: var(--white); padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .section.active { display: block; }
+    h2 { margin-top: 0; border-bottom: 2px solid var(--secondary-color); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+    th { background-color: var(--secondary-color); color: var(--text-main); }
+    .action-btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: var(--white); }
+    .btn-primary { background-color: var(--primary-color); }
+    .btn-danger { background-color: var(--danger); }
+    .btn-success { background-color: var(--success); }
     
-    if (result.success && result.data.length > 0) {
-      tbody.innerHTML = "";
-      result.data.forEach(item => {
-        const tr = document.createElement("tr");
-        const btnClass = item["商品狀態"] === "上架" ? "btn-danger" : "btn-success";
-        const btnText = item["商品狀態"] === "上架" ? "設為下架" : "設為上架";
-        
-        tr.innerHTML = `
-          <td>${item["商品編號"]}</td>
-          <td>${item["商品名稱"]}</td>
-          <td>${item["大類別"]}</td>
-          <td>$${item["預設價格"]}</td>
-          <td><strong>${item["商品狀態"]}</strong></td>
-          <td>
-            <button class="action-btn ${btnClass}" onclick="toggleProduct('${item["商品編號"]}', '${item["商品狀態"]}')">${btnText}</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    } else {
-      tbody.innerHTML = '<tr><td colspan="6">無商品資料。</td></tr>';
-    }
-  } catch (error) {
-    tbody.innerHTML = '<tr><td colspan="6" style="color:red;">載入失敗，請檢查網路設定。</td></tr>';
-  }
-}
-
-async function toggleProduct(productId, currentStatus) {
-  if (!confirm(`確定要將此商品設為「${currentStatus === '上架' ? '下架' : '上架'}」嗎？`)) return;
-  try {
-    const response = await fetch(APP_CONFIG.GAS_API_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "toggleProduct", productId: productId, currentStatus: currentStatus })
-    });
-    const result = await response.json();
-    if (result.success) {
-      loadProductsForAdmin(); 
-    } else {
-      alert("更新失敗：" + result.message);
-    }
-  } catch (error) {
-    alert("系統連線錯誤");
-  }
-}
-
-// 新增：載入會員列表
-async function loadMembersForAdmin() {
-  const tbody = document.getElementById("admin-member-list");
-  tbody.innerHTML = '<tr><td colspan="5">正在連線資料庫...</td></tr>';
-  
-  try {
-    const response = await fetch(APP_CONFIG.GAS_API_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "getAllUsers" })
-    });
-    const result = await response.json();
+    #auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; justify-content: center; align-items: center; }
+    .auth-box { background: var(--white); padding: 30px; border-radius: 12px; text-align: center; }
+    .auth-box input { padding: 10px; margin: 15px 0; width: 80%; border: 1px solid #ccc; border-radius: 6px; }
+    #error-msg { color: red; font-weight: bold; margin-top: 10px; }
     
-    if (result.success) {
-      allMembers = result.data;
-      renderMembers(allMembers); // 渲染畫面
-    } else {
-      tbody.innerHTML = '<tr><td colspan="5">無法取得會員資料</td></tr>';
-    }
-  } catch (error) {
-    tbody.innerHTML = '<tr><td colspan="5" style="color:red;">載入失敗</td></tr>';
-  }
-}
-
-// 渲染會員表格
-function renderMembers(dataToRender) {
-  const tbody = document.getElementById("admin-member-list");
-  tbody.innerHTML = "";
-  
-  if (dataToRender.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5">無符合條件的會員</td></tr>';
-    return;
-  }
-  
-  dataToRender.forEach(user => {
-    // 處理手機號碼開頭的單引號
-    let phoneStr = user["電話號碼(必填)"] ? user["電話號碼(必填)"].toString().replace(/^'/, '') : "";
-    let extraInfo = [user["寰宇大樓樓層(選填)"], user["其他備註(選填)"]].filter(Boolean).join(" / ");
+    /* 財務報表卡片 */
+    .dashboard-cards { display: flex; gap: 20px; margin-top: 20px; margin-bottom: 30px; }
+    .dash-card { flex: 1; padding: 20px; background: #f9f9f9; border-radius: 12px; border-left: 5px solid var(--primary-color); }
+    .dash-card h3 { margin: 0 0 10px 0; font-size: 16px; color: #666; }
+    .dash-card .value { font-size: 32px; font-weight: bold; color: var(--text-main); }
     
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td style="font-weight:bold;">${user["姓名(可變更)"]}</td>
-      <td>${phoneStr}</td>
-      <td>${extraInfo}</td>
-      <td><span style="padding:4px 8px; border-radius:12px; background:${user["系統權限"] === '管理員' ? '#e65100' : '#e0e0e0'}; color:${user["系統權限"] === '管理員' ? '#fff' : '#333'}; font-size:12px;">${user["系統權限"]}</span></td>
-      <td style="font-size:13px; color:#666;">${user["註冊時間"]}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
+    /* 表單彈窗 */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: none; justify-content: center; align-items: center; }
+    .modal-overlay.active { display: flex; }
+    .modal-content { background: white; padding: 30px; border-radius: 12px; width: 400px; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+    .form-group input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+  </style>
+</head>
+<body>
 
-// 搜尋過濾功能
-function filterMembers() {
-  const keyword = document.getElementById("member-search").value.toLowerCase();
-  if (!keyword) {
-    renderMembers(allMembers);
-    return;
-  }
-  
-  const filtered = allMembers.filter(user => {
-    const name = (user["姓名(可變更)"] || "").toLowerCase();
-    const phone = (user["電話號碼(必填)"] || "").toString().toLowerCase();
-    const note = (user["寰宇大樓樓層(選填)"] || "") + " " + (user["其他備註(選填)"] || "");
-    return name.includes(keyword) || phone.includes(keyword) || note.toLowerCase().includes(keyword);
-  });
-  
-  renderMembers(filtered);
-}
+  <div id="auth-overlay">
+    <div class="auth-box">
+      <h3>🔒 系統受保護</h3>
+      <p>請輸入主管密碼 (預設: admin123)</p>
+      <input type="password" id="admin-password" placeholder="請輸入密碼">
+      <br><button class="action-btn btn-primary" onclick="verifyAdmin()">登入</button>
+      <div id="error-msg"></div>
+    </div>
+  </div>
 
-async function executeArchive(type) {
-  const confirmMsg = type === 'daily' ? "確定要執行【每日結算歸檔】嗎？這將鎖定今日資料。" : "確定要執行【週期歸檔】嗎？";
-  if (!confirm(confirmMsg)) return;
+  <div class="sidebar">
+    <div class="sidebar-header">Café Connect<br><span style="font-size:14px; font-weight:normal;">主管控制台</span></div>
+    <button class="nav-btn active" onclick="switchTab('finance-sec', this)">💰 財務與報表</button>
+    <button class="nav-btn" onclick="switchTab('product-sec', this)">📦 商品管理</button>
+    <button class="nav-btn" onclick="switchTab('member-sec', this)">👥 會員管理</button>
+    <button class="nav-btn" onclick="switchTab('log-sec', this)">📝 稽核日誌</button>
+  </div>
 
-  try {
-    const response = await fetch(APP_CONFIG.GAS_API_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "executeArchive", type: type })
-    });
-    const result = await response.json();
-    if (result.success) alert("✅ " + result.message);
-    else alert("❌ 執行失敗：" + result.error);
-  } catch (error) {
-    alert("系統連線錯誤");
-  }
-}
+  <div class="main-content">
+    
+    <div id="finance-sec" class="section active">
+      <h2>當日營運報表 (即時)</h2>
+      <div class="dashboard-cards">
+        <div class="dash-card"><h3>總營業額</h3><div class="value" id="dash-revenue">$0</div></div>
+        <div class="dash-card"><h3>完成單數</h3><div class="value" id="dash-orders">0</div></div>
+        <div class="dash-card"><h3>熱銷品項</h3><div class="value" id="dash-top-item" style="font-size:20px;">-</div></div>
+      </div>
+      
+      <h3>各品項銷售統計</h3>
+      <table style="width: 50%;">
+        <thead><tr><th>商品名稱</th><th>銷售數量</th></tr></thead>
+        <tbody id="sales-breakdown-list"><tr><td colspan="2">載入中...</td></tr></tbody>
+      </table>
+      
+      <h3 style="margin-top:40px; border-top:1px solid #eee; padding-top:20px;">資料歸檔作業</h3>
+      <div style="display: flex; gap: 15px;">
+        <button class="action-btn btn-success" onclick="executeArchive('daily')">執行手動日結算</button>
+        <button class="action-btn btn-primary" onclick="executeArchive('periodic')">匯出週期報表</button>
+      </div>
+    </div>
 
-document.getElementById("admin-password").addEventListener("keypress", function(event) {
-  if (event.key === "Enter") verifyAdmin();
-});
+    <div id="product-sec" class="section">
+      <h2>商品管理 <button class="action-btn btn-primary" style="font-size:14px;" onclick="openProductModal()">+ 新增商品</button></h2>
+      <table>
+        <thead><tr><th>編號</th><th>名稱</th><th>分類</th><th>價格</th><th>狀態</th><th>操作</th></tr></thead>
+        <tbody id="admin-product-list"><tr><td colspan="6">載入中...</td></tr></tbody>
+      </table>
+    </div>
+
+    <div id="member-sec" class="section">
+      <h2>會員資料管理</h2>
+      <input type="text" id="member-search" class="search-bar" style="width:100%; padding:10px; margin-bottom:10px;" placeholder="🔍 搜尋姓名或手機..." onkeyup="filterMembers()">
+      <table>
+        <thead><tr><th>姓名</th><th>手機號碼</th><th>樓層/備註</th><th>權限等級</th><th>註冊時間</th></tr></thead>
+        <tbody id="admin-member-list"><tr><td colspan="5">載入中...</td></tr></tbody>
+      </table>
+    </div>
+
+    <div id="log-sec" class="section">
+      <h2>操作稽核日誌 (Audit Log)</h2>
+      <table>
+        <thead><tr><th>時間</th><th>操作者姓名</th><th>操作類型</th><th>詳細內容</th></tr></thead>
+        <tbody id="admin-log-list"><tr><td colspan="4">載入中...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 商品編輯/新增彈窗 -->
+  <div class="modal-overlay" id="product-modal">
+    <div class="modal-content">
+      <h3 id="product-modal-title">商品設定</h3>
+      <input type="hidden" id="edit-prod-mode" value="add">
+      <div class="form-group"><label>商品編號 (如: A001)</label><input type="text" id="edit-prod-id"></div>
+      <div class="form-group"><label>商品名稱</label><input type="text" id="edit-prod-name"></div>
+      <div class="form-group"><label>分類 (大類別)</label><input type="text" id="edit-prod-cat"></div>
+      <div class="form-group"><label>價格</label><input type="number" id="edit-prod-price"></div>
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button class="action-btn" style="background:#999; flex:1;" onclick="document.getElementById('product-modal').classList.remove('active')">取消</button>
+        <button class="action-btn btn-primary" style="flex:1;" onclick="saveProduct()">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="Js/config.js"></script>
+  <script src="Js/admin.js"></script>
+</body>
+</html>
